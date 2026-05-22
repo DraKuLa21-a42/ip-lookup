@@ -10,9 +10,6 @@ API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 TMP_DIR="/tmp/tmp-geolite-update"
 TARGET_DIR="./data"
 
-OWNER="dev"
-GROUP="dev"
-
 STATE_FILE="${TARGET_DIR}/.geolite_version"
 
 FILES=(
@@ -122,7 +119,4 @@ done
 
 echo "$LATEST_TAG" > "$STATE_FILE"
 
-chown "${OWNER}:${GROUP}" "$STATE_FILE"
-chmod 0644 "$STATE_FILE"
-systemctl reload checkhost
 echo "Update completed successfully"
