@@ -49,7 +49,6 @@ systemctl status ip-lookup
 systemctl restart nginx 
 
 crontab -e
-додати:
 '11 2 * * * /bin/bash /opt/scripts/ip-lookup/update-geolite.sh'
 ```
 
