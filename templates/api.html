@@ -120,6 +120,59 @@
       margin-top: 2px;
     }
 
+    .sidebar-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    /* Back link — simple text style */
+    .sidebar-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .sidebar-back:hover {
+      color: var(--text);
+    }
+
+    /* GitHub button — polished pill */
+    .github-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      color: var(--text);
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+      width: fit-content;
+    }
+
+    .github-btn:hover {
+      background: #24292f;
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #fff;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
+    }
+
+    .github-btn svg {
+      flex-shrink: 0;
+      opacity: 0.9;
+    }
+
     .nav-group {
       margin-bottom: 0.25rem;
     }
@@ -497,6 +550,7 @@
       display: flex;
       gap: 4px;
       margin-bottom: 0.75rem;
+      flex-wrap: wrap;
     }
 
     .tab-btn {
@@ -655,19 +709,30 @@
       </div>
       <h1>Network Tools</h1>
       <p>API v1 · REST</p>
-      <a href="/" style="
-  display:inline-flex;align-items:center;gap:5px;margin-top:10px;
-  font-size:11px;color:var(--muted);text-decoration:none;
-  transition:color .15s">
-        ← ip//lookup
-      </a>
-      <br>
-      <a href="/" style="
-  display:inline-flex;align-items:center;gap:5px;margin-top:10px;
-  font-size:11px;color:var(--muted);text-decoration:none;
-  transition:color .15s">
-        Github
-      </a>
+
+      <div class="sidebar-links">
+        <a href="/" class="sidebar-back">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M6 2L3 5l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          ip//lookup
+        </a>
+
+        <a href="https://github.com/DraKuLa21-a42/ip-lookup" target="_blank" rel="noopener" class="github-btn">
+          <!-- GitHub mark SVG -->
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+              0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52
+              -.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2
+              -3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82
+              .64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08
+              2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01
+              1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+          </svg>
+          GitHub
+        </a>
+      </div>
     </div>
 
     <div class="nav-group">
@@ -700,6 +765,9 @@
       <a href="#ep-dns" class="nav-item">
         <span class="nav-dot" style="background:#4ade80"></span> GET /api/dns
       </a>
+      <a href="#ep-ssl" class="nav-item">
+        <span class="nav-dot" style="background:#4ade80"></span> GET /api/ssl
+      </a>
       <a href="#ep-ping" class="nav-item">
         <span class="nav-dot" style="background:#4ade80"></span> GET /api/ping
       </a>
@@ -720,8 +788,8 @@
         REST API · JSON
       </div>
       <h1>Network Tools<br><span>API Reference</span></h1>
-      <p>Набір інструментів для аналізу мережевих адрес: геолокація IP, DNS-лукап, ICMP ping, TCP-перевірка портів та
-        DNSSEC аналіз.</p>
+      <p>Набір інструментів для аналізу мережевих адрес: геолокація IP, DNS-лукап, перевірка SSL-сертифікатів, ICMP
+        ping, TCP-перевірка портів та DNSSEC аналіз.</p>
       <div class="base-url-block">
         <span class="label">Base URL</span>
         <span class="url">https://your-domain.com</span>
@@ -737,6 +805,11 @@
         <div class="rate-card">
           <div class="endpoint-name">/api/dns</div>
           <div class="rate-value">30</div>
+          <div class="rate-unit">запитів / 60 сек</div>
+        </div>
+        <div class="rate-card">
+          <div class="endpoint-name">/api/ssl</div>
+          <div class="rate-value">10</div>
           <div class="rate-unit">запитів / 60 сек</div>
         </div>
         <div class="rate-card">
@@ -781,12 +854,13 @@
 
     <hr class="divider">
 
-    <!-- /api/myip -->
+    <!-- ENDPOINTS -->
     <h2 class="section-title">Endpoints</h2>
     <p class="section-desc">Всі відповіді повертаються у форматі <code
         style="font-family:var(--mono);font-size:12px;background:rgba(255,255,255,0.08);padding:2px 5px;border-radius:3px">application/json</code>.
     </p>
 
+    <!-- /api/myip -->
     <div class="endpoint-card open" id="ep-myip">
       <div class="endpoint-header" onclick="toggleCard(this)">
         <span class="method-badge method-GET">GET</span>
@@ -803,12 +877,10 @@
               style="font-family:var(--mono);font-size:12px">X-Forwarded-For</code> заголовок для визначення реального
             IP за проксі.</span>
         </div>
-
         <div class="example-block">
           <div class="example-label"><span class="dot" style="color:var(--accent)"></span> Запит</div>
           <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="hl-url">GET /api/myip</span></pre>
         </div>
-
         <div class="example-block">
           <div class="example-label"><span class="dot" style="color:var(--green)"></span> Відповідь</div>
           <span class="response-badge resp-200">200 OK</span>
@@ -848,13 +920,11 @@
             </tr>
           </tbody>
         </table>
-
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab(this,'lookup-req')">Запит</button>
           <button class="tab-btn" onclick="switchTab(this,'lookup-resp')">Відповідь</button>
           <button class="tab-btn" onclick="switchTab(this,'lookup-err')">Помилки</button>
         </div>
-
         <div class="tab-content active" id="lookup-req">
           <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="hl-url">GET /api/lookup?ip=8.8.8.8</span></pre>
         </div>
@@ -914,12 +984,10 @@
             <tr>
               <td><span class="param-name">domain</span><span class="param-required">required</span></td>
               <td><span class="param-type">string</span></td>
-              <td class="param-desc">Доменне ім'я або URL. Схема і шлях відкидаються автоматично. Домени, що
-                резолвляться у приватні IP, заблоковані.</td>
+              <td class="param-desc">Доменне ім'я або URL. Схема і шлях відкидаються автоматично.</td>
             </tr>
           </tbody>
         </table>
-
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab(this,'resolve-req')">Запит</button>
           <button class="tab-btn" onclick="switchTab(this,'resolve-resp')">Відповідь</button>
@@ -941,7 +1009,7 @@
       <span class="hl-key">"country"</span>: <span class="hl-str">"United States"</span>,
       <span class="hl-key">"city"</span>: <span class="hl-str">"Seattle"</span>,
       <span class="hl-key">"asn_org"</span>: <span class="hl-str">"GITHUB"</span>,
-      <span class="hl-key">"...</span><span class="hl-str">"</span>: <span class="hl-str">"..."</span>
+      <span class="hl-key">"..."</span>: <span class="hl-str">"..."</span>
     }
   ]
 }</pre>
@@ -965,11 +1033,10 @@
           <span>Якщо передано IP — поведінка як у <code
               style="font-family:var(--mono);font-size:12px">/api/lookup</code>. Якщо передано домен — як у <code
               style="font-family:var(--mono);font-size:12px">/api/resolve</code>. Поле <code
-              style="font-family:var(--mono);font-size:12px">"type"</code> у відповіді завжди вказує <code
+              style="font-family:var(--mono);font-size:12px">"type"</code> вказує <code
               style="font-family:var(--mono);font-size:12px">"ip"</code> або <code
               style="font-family:var(--mono);font-size:12px">"domain"</code>.</span>
         </div>
-
         <div class="params-title">Параметри</div>
         <table class="params-table">
           <thead>
@@ -987,7 +1054,6 @@
             </tr>
           </tbody>
         </table>
-
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab(this,'query-req1')">IP запит</button>
           <button class="tab-btn" onclick="switchTab(this,'query-req2')">Domain запит</button>
@@ -1038,19 +1104,16 @@
               <td class="param-desc">Тип DNS-запису. Якщо не вказано — повертаються всі знайдені типи. Можливі значення:
                 <code style="font-family:var(--mono);font-size:12px">A</code>, <code
                   style="font-family:var(--mono);font-size:12px">AAAA</code>, <code
-                  style="font-family:var(--mono);font-size:12px">CNAME</code>, <code
                   style="font-family:var(--mono);font-size:12px">MX</code>, <code
-                  style="font-family:var(--mono);font-size:12px">NS</code>, <code
                   style="font-family:var(--mono);font-size:12px">TXT</code>, <code
+                  style="font-family:var(--mono);font-size:12px">NS</code>, <code
                   style="font-family:var(--mono);font-size:12px">SOA</code>, <code
                   style="font-family:var(--mono);font-size:12px">SRV</code>, <code
                   style="font-family:var(--mono);font-size:12px">CAA</code>, <code
-                  style="font-family:var(--mono);font-size:12px">DNSSEC</code> та інші.
-              </td>
+                  style="font-family:var(--mono);font-size:12px">DNSSEC</code> та інші.</td>
             </tr>
           </tbody>
         </table>
-
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab(this,'dns-req1')">Один тип</button>
           <button class="tab-btn" onclick="switchTab(this,'dns-req2')">Всі записи</button>
@@ -1082,10 +1145,6 @@
     {
       <span class="hl-key">"type"</span>: <span class="hl-str">"MX"</span>,
       <span class="hl-key">"records"</span>: [<span class="hl-str">"10 smtp.google.com."</span>]
-    },
-    {
-      <span class="hl-key">"type"</span>: <span class="hl-str">"NS"</span>,
-      <span class="hl-key">"records"</span>: [<span class="hl-str">"ns1.google.com."</span>, <span class="hl-str">"ns2.google.com."</span>]
     }
   ],
   <span class="hl-key">"dnssec"</span>: {
@@ -1098,6 +1157,204 @@
     ]
   }
 }</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- /api/ssl -->
+    <div class="endpoint-card" id="ep-ssl">
+      <div class="endpoint-header" onclick="toggleCard(this)">
+        <span class="method-badge method-GET">GET</span>
+        <div class="endpoint-info">
+          <div class="endpoint-path">/api/ssl<span class="param">?host=</span>{host}<span
+              class="param">&port=</span>{port}</div>
+          <div class="endpoint-summary">Перевірка SSL/TLS сертифікату — довіра, термін дії, SAN, шифр</div>
+        </div>
+        <span class="toggle-icon">▾</span>
+      </div>
+      <div class="endpoint-body">
+        <div class="info-box">
+          <span class="icon">ℹ</span>
+          <span>Отримання сертифікату і перевірка ланцюжка довіри виконуються незалежно — навіть прострочені або
+            self-signed сертифікати повністю аналізуються. Перевірка wildcard SAN відповідає RFC 6125.</span>
+        </div>
+
+        <div class="params-title">Параметри</div>
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Параметр</th>
+              <th>Тип</th>
+              <th>Опис</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="param-name">host</span><span class="param-required">required</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">Домен або IP-адреса. Приватні адреси заблоковані.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">port</span><span class="param-optional">optional</span></td>
+              <td><span class="param-type">integer</span></td>
+              <td class="param-desc">TCP-порт. За замовчуванням: <code
+                  style="font-family:var(--mono);font-size:12px">443</code>. Діапазон: 1–65535.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="params-title" style="margin-top:1rem">Поля відповіді</div>
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Поле</th>
+              <th>Тип</th>
+              <th>Опис</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="param-name">valid</span></td>
+              <td><span class="param-type">boolean</span></td>
+              <td class="param-desc">Загальний результат: сертифікат довірений, не прострочений, ім'я збігається.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">trusted</span></td>
+              <td><span class="param-type">boolean</span></td>
+              <td class="param-desc">Ланцюжок довіри перевірено системними CA.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">trust_error</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Причина недовіри (якщо є). Наприклад: self-signed, прострочений CA тощо.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">name_match</span></td>
+              <td><span class="param-type">boolean</span></td>
+              <td class="param-desc">Відповідність <code style="font-family:var(--mono);font-size:12px">host</code> і
+                SAN/CN сертифікату. Підтримує wildcard <code
+                  style="font-family:var(--mono);font-size:12px">*.example.com</code>.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">days_left</span></td>
+              <td><span class="param-type">integer</span></td>
+              <td class="param-desc">Днів до закінчення дії. Від'ємне значення — сертифікат прострочений.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">expired</span></td>
+              <td><span class="param-type">boolean</span></td>
+              <td class="param-desc"><code style="font-family:var(--mono);font-size:12px">true</code> якщо сертифікат
+                прострочений.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">not_before / not_after</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">Дати початку і закінчення дії сертифікату.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">san</span></td>
+              <td><span class="param-type">string[]</span></td>
+              <td class="param-desc">Список DNS-імен із Subject Alternative Names.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">tls_version</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">Версія TLS протоколу: <code
+                  style="font-family:var(--mono);font-size:12px">TLSv1.2</code> або <code
+                  style="font-family:var(--mono);font-size:12px">TLSv1.3</code>.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">cipher</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">Назва активного шифру (наприклад, <code
+                  style="font-family:var(--mono);font-size:12px">TLS_AES_128_GCM_SHA256</code>).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">chain</span></td>
+              <td><span class="param-type">object[]</span></td>
+              <td class="param-desc">Масив з CN, організацією, видавцем та датами для кожного сертифікату в ланцюжку.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab(this,'ssl-req')">Запит</button>
+          <button class="tab-btn" onclick="switchTab(this,'ssl-resp-ok')">Валідний</button>
+          <button class="tab-btn" onclick="switchTab(this,'ssl-resp-bad')">Невалідний</button>
+          <button class="tab-btn" onclick="switchTab(this,'ssl-err')">Помилки</button>
+        </div>
+
+        <div class="tab-content active" id="ssl-req">
+          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="hl-url">GET /api/ssl?host=github.com</span>
+
+<span class="hl-comment"># Нестандартний порт</span>
+<span class="hl-url">GET /api/ssl?host=example.com&port=8443</span></pre>
+        </div>
+
+        <div class="tab-content" id="ssl-resp-ok">
+          <span class="response-badge resp-200">200 OK</span>
+          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>{
+  <span class="hl-key">"host"</span>: <span class="hl-str">"github.com"</span>,
+  <span class="hl-key">"port"</span>: <span class="hl-num">443</span>,
+  <span class="hl-key">"valid"</span>: <span class="hl-bool">true</span>,
+  <span class="hl-key">"trusted"</span>: <span class="hl-bool">true</span>,
+  <span class="hl-key">"trust_error"</span>: <span class="hl-bool">null</span>,
+  <span class="hl-key">"name_match"</span>: <span class="hl-bool">true</span>,
+  <span class="hl-key">"expired"</span>: <span class="hl-bool">false</span>,
+  <span class="hl-key">"days_left"</span>: <span class="hl-num">187</span>,
+  <span class="hl-key">"not_before"</span>: <span class="hl-str">"15 January 2025"</span>,
+  <span class="hl-key">"not_after"</span>: <span class="hl-str">"15 July 2025"</span>,
+  <span class="hl-key">"common_name"</span>: <span class="hl-str">"github.com"</span>,
+  <span class="hl-key">"issuer_cn"</span>: <span class="hl-str">"DigiCert TLS RSA SHA256 2020 CA1"</span>,
+  <span class="hl-key">"issuer_org"</span>: <span class="hl-str">"DigiCert Inc"</span>,
+  <span class="hl-key">"issuer_country"</span>: <span class="hl-str">"US"</span>,
+  <span class="hl-key">"san"</span>: [<span class="hl-str">"github.com"</span>, <span class="hl-str">"www.github.com"</span>],
+  <span class="hl-key">"san_count"</span>: <span class="hl-num">2</span>,
+  <span class="hl-key">"tls_version"</span>: <span class="hl-str">"TLSv1.3"</span>,
+  <span class="hl-key">"cipher"</span>: <span class="hl-str">"TLS_AES_128_GCM_SHA256"</span>,
+  <span class="hl-key">"key_bits"</span>: <span class="hl-num">128</span>,
+  <span class="hl-key">"chain"</span>: [
+    {
+      <span class="hl-key">"common_name"</span>: <span class="hl-str">"github.com"</span>,
+      <span class="hl-key">"organization"</span>: <span class="hl-str">"GitHub, Inc."</span>,
+      <span class="hl-key">"issuer"</span>: <span class="hl-str">"DigiCert TLS RSA SHA256 2020 CA1"</span>,
+      <span class="hl-key">"not_before"</span>: <span class="hl-str">"15 January 2025"</span>,
+      <span class="hl-key">"not_after"</span>: <span class="hl-str">"15 July 2025"</span>
+    }
+  ]
+}</pre>
+        </div>
+
+        <div class="tab-content" id="ssl-resp-bad">
+          <span class="response-badge resp-200">200 OK</span>
+          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="hl-comment">// Self-signed або прострочений — поля все одно повертаються</span>
+{
+  <span class="hl-key">"host"</span>: <span class="hl-str">"self-signed.badssl.com"</span>,
+  <span class="hl-key">"port"</span>: <span class="hl-num">443</span>,
+  <span class="hl-key">"valid"</span>: <span class="hl-bool">false</span>,
+  <span class="hl-key">"trusted"</span>: <span class="hl-bool">false</span>,
+  <span class="hl-key">"trust_error"</span>: <span class="hl-str">"[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self-signed certificate"</span>,
+  <span class="hl-key">"name_match"</span>: <span class="hl-bool">true</span>,
+  <span class="hl-key">"expired"</span>: <span class="hl-bool">false</span>,
+  <span class="hl-key">"days_left"</span>: <span class="hl-num">312</span>,
+  <span class="hl-key">"common_name"</span>: <span class="hl-str">"*.badssl.com"</span>,
+  <span class="hl-key">"issuer_cn"</span>: <span class="hl-str">"*.badssl.com"</span>,
+  <span class="hl-key">"tls_version"</span>: <span class="hl-str">"TLSv1.2"</span>,
+  <span class="hl-key">"..."</span>: <span class="hl-str">"..."</span>
+}</pre>
+        </div>
+
+        <div class="tab-content" id="ssl-err">
+          <span class="response-badge resp-400">400 Bad Request</span>
+          <pre><span class="hl-comment">// Відсутній host</span>
+{ <span class="hl-key">"error"</span>: <span class="hl-str">"Параметр host не вказано"</span> }</pre>
+          <span class="response-badge resp-400">400 Bad Request</span>
+          <pre><span class="hl-comment">// Невалідний порт</span>
+{ <span class="hl-key">"error"</span>: <span class="hl-str">"Невалідний порт"</span> }</pre>
+          <span class="response-badge resp-403">403 Forbidden</span>
+          <pre><span class="hl-comment">// Приватна адреса</span>
+{ <span class="hl-key">"error"</span>: <span class="hl-str">"Приватні та зарезервовані адреси заборонені"</span> }</pre>
         </div>
       </div>
     </div>
@@ -1138,7 +1395,6 @@
             </tr>
           </tbody>
         </table>
-
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab(this,'ping-req')">Запит</button>
           <button class="tab-btn" onclick="switchTab(this,'ping-resp-ok')">Успіх</button>
@@ -1208,25 +1464,23 @@
               <td><span class="param-name">ports</span><span class="param-required">required</span></td>
               <td><span class="param-type">string</span></td>
               <td class="param-desc">
-                Порти для перевірки. Формати:
-                <br>• Один порт: <code style="font-family:var(--mono);font-size:12px">22</code>
-                <br>• Список через кому: <code style="font-family:var(--mono);font-size:12px">80,443,22</code>
-                <br>• Діапазон: <code style="font-family:var(--mono);font-size:12px">80-90</code> (макс. +100 від
-                початку)
-                <br>• Змішаний: <code style="font-family:var(--mono);font-size:12px">22,80,443,8080-8090</code>
-                <br>Максимум 100 портів за запит. Діапазон 1–65535.
+                Порти для перевірки. Формати:<br>
+                • Один порт: <code style="font-family:var(--mono);font-size:12px">22</code><br>
+                • Список: <code style="font-family:var(--mono);font-size:12px">80,443,22</code><br>
+                • Діапазон: <code style="font-family:var(--mono);font-size:12px">80-90</code> (макс. +100)<br>
+                • Змішаний: <code style="font-family:var(--mono);font-size:12px">22,80,8080-8090</code><br>
+                Максимум 100 портів за запит.
               </td>
             </tr>
           </tbody>
         </table>
-
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab(this,'tcp-req')">Запити</button>
           <button class="tab-btn" onclick="switchTab(this,'tcp-resp')">Відповідь</button>
           <button class="tab-btn" onclick="switchTab(this,'tcp-known')">Відомі порти</button>
         </div>
         <div class="tab-content active" id="tcp-req">
-          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button"><span class="hl-comment"># Основні веб-порти</span>
+          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="hl-comment"># Основні веб-порти</span>
 <span class="hl-url">GET /api/tcpcheck?host=example.com&ports=80,443</span>
 
 <span class="hl-comment"># Сканування діапазону</span>
@@ -1241,21 +1495,12 @@
   <span class="hl-key">"host"</span>: <span class="hl-str">"example.com"</span>,
   <span class="hl-key">"results"</span>: [
     {
-      <span class="hl-key">"host"</span>: <span class="hl-str">"example.com"</span>,
       <span class="hl-key">"port"</span>: <span class="hl-num">80</span>,
       <span class="hl-key">"open"</span>: <span class="hl-bool">true</span>,
       <span class="hl-key">"ms"</span>: <span class="hl-num">12.45</span>,
       <span class="hl-key">"service"</span>: <span class="hl-str">"HTTP"</span>
     },
     {
-      <span class="hl-key">"host"</span>: <span class="hl-str">"example.com"</span>,
-      <span class="hl-key">"port"</span>: <span class="hl-num">443</span>,
-      <span class="hl-key">"open"</span>: <span class="hl-bool">true</span>,
-      <span class="hl-key">"ms"</span>: <span class="hl-num">13.88</span>,
-      <span class="hl-key">"service"</span>: <span class="hl-str">"HTTPS"</span>
-    },
-    {
-      <span class="hl-key">"host"</span>: <span class="hl-str">"example.com"</span>,
       <span class="hl-key">"port"</span>: <span class="hl-num">22</span>,
       <span class="hl-key">"open"</span>: <span class="hl-bool">false</span>,
       <span class="hl-key">"error"</span>: <span class="hl-str">"Connection refused"</span>,
@@ -1352,8 +1597,7 @@
         const el = document.getElementById(id);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         if (id.startsWith('ep-')) {
-          const card = el;
-          if (!card.classList.contains('open')) card.classList.add('open');
+          if (!el.classList.contains('open')) el.classList.add('open');
         }
       });
     });
