@@ -1,0 +1,23 @@
+[Unit]
+Description=IP Lookup (uWSGI)
+After=network.target
+
+[Service]
+User=dev
+Group=dev
+WorkingDirectory=/opt/scripts/ip-lookup
+RuntimeDirectory=ip-lookup
+RuntimeDirectoryMode=0755
+
+ExecStart=/opt/scripts/ip-lookup/venv/bin/uwsgi --ini uwsgi.ini
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGQUIT
+Restart=on-failure
+RestartSec=5
+
+# Логи
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

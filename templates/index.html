@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IP Lookup</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0a0c10;
+      --surface: #111318;
+      --border: #1e2230;
+      --accent: #00e5ff;
+      --accent2: #7b5ea7;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --success: #10b981;
+      --warn: #f59e0b;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 16px 80px;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0, 229, 255, .07) 0%, transparent 70%),
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255, 255, 255, .015) 39px, rgba(255, 255, 255, .015) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255, 255, 255, .015) 39px, rgba(255, 255, 255, .015) 40px);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .logo {
+      font-family: var(--sans);
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      letter-spacing: -2px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .tagline {
+      color: var(--muted);
+      font-size: .78rem;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    .search-wrap {
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      gap: 8px;
+      margin-bottom: 40px;
+    }
+
+    .search-wrap input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: .95rem;
+      padding: 14px 18px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .search-wrap input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 229, 255, .1);
+    }
+
+    .search-wrap input::placeholder {
+      color: var(--muted);
+    }
+
+    .btn {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: .9rem;
+      padding: 14px 24px;
+      cursor: pointer;
+      white-space: nowrap;
+      letter-spacing: .04em;
+      transition: opacity .15s, transform .1s;
+    }
+
+    .btn:hover {
+      opacity: .88;
+    }
+
+    .btn:active {
+      transform: scale(.97);
+    }
+
+    .btn-own {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: .8rem;
+      padding: 0 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: var(--mono);
+      transition: color .2s, border-color .2s;
+    }
+
+    .btn-own:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    #result {
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      animation: fadeUp .35s ease both;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Domain header */
+    .domain-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(123, 94, 167, .08);
+    }
+
+    .domain-badge {
+      font-family: var(--sans);
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--accent2);
+      letter-spacing: -0.5px;
+    }
+
+    .domain-count {
+      margin-left: auto;
+      font-size: .72rem;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    /* IP sub-header inside domain results */
+    .ip-subheader {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0, 229, 255, .03);
+    }
+
+    .ip-subheader:not(:first-child) {
+      border-top: 2px solid var(--border);
+    }
+
+    .ip-sub-badge {
+      font-family: var(--sans);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* IP card header */
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0, 229, 255, .04);
+    }
+
+    .ip-badge {
+      font-family: var(--sans);
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+
+    .flag {
+      line-height: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .flag img {
+      width: 32px;
+      height: 24px;
+      border-radius: 3px;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, .1);
+    }
+
+    .country-name {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .tag {
+      margin-left: auto;
+      font-size: .7rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .tag-public {
+      background: rgba(16, 185, 129, .15);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, .3);
+    }
+
+    .tag-private {
+      background: rgba(245, 158, 11, .12);
+      color: var(--warn);
+      border: 1px solid rgba(245, 158, 11, .3);
+    }
+
+    .rows {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      padding: 13px 24px;
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .row:last-child {
+      border-bottom: none;
+    }
+
+    .row:hover {
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .row-label {
+      font-size: .72rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding-top: 2px;
+    }
+
+    .row-value {
+      font-size: .9rem;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .row-value.accent {
+      color: var(--accent);
+    }
+
+    .row-value.none {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .card-footer {
+      display: flex;
+      border-top: 1px solid var(--border);
+    }
+
+    .map-link {
+      flex: 1;
+      display: block;
+      text-align: center;
+      padding: 13px 10px;
+      font-size: .75rem;
+      color: var(--accent);
+      text-decoration: none;
+      transition: background .15s;
+      letter-spacing: .05em;
+      border-right: 1px solid var(--border);
+    }
+
+    .map-link:last-child {
+      border-right: none;
+    }
+
+    .map-link:hover {
+      background: rgba(0, 229, 255, .05);
+    }
+
+    .state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .error-icon {
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+
+    /* clickable IP chips in domain results */
+    .ip-chip {
+      display: inline-block;
+      background: rgba(0, 229, 255, .08);
+      border: 1px solid rgba(0, 229, 255, .2);
+      border-radius: 4px;
+      padding: 1px 8px;
+      font-size: .82rem;
+      color: var(--accent);
+      cursor: pointer;
+      transition: background .15s;
+      margin: 2px 4px 2px 0;
+    }
+
+    .ip-chip:hover {
+      background: rgba(0, 229, 255, .18);
+    }
+
+    @media (max-width: 480px) {
+      .row {
+        grid-template-columns: 120px 1fr;
+      }
+
+      .ip-badge {
+        font-size: 1rem;
+      }
+    }
+
+    /* ── My IP block ── */
+    .myip-block {
+      width: 100%;
+      max-width: 640px;
+      margin-bottom: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .myip-title {
+      font-size: .68rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 10px 18px 6px;
+    }
+
+    .myip-rows {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .myip-cell {
+      padding: 8px 18px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .myip-cell:last-child {
+      border-bottom: none;
+    }
+
+    .myip-ver {
+      font-size: .65rem;
+      color: var(--muted);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .myip-addr {
+      font-size: .88rem;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .myip-addr.none {
+      color: var(--muted);
+      font-style: italic;
+      font-size: .78rem;
+    }
+
+    .myip-addr a {
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+      transition: color .15s;
+    }
+
+    .myip-addr a:hover {
+      color: var(--accent);
+    }
+
+    .myip-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      margin-right: 6px;
+      vertical-align: middle;
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: .35;
+      }
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .tab {
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-size: .78rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--mono);
+      transition: color .15s, border-color .15s, background .15s;
+    }
+
+    .tab:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .tab.active {
+      background: rgba(0, 229, 255, .08);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── DNS type selector ── */
+    .dns-types {
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .type-btn {
+      padding: 5px 12px;
+      border-radius: 5px;
+      font-size: .75rem;
+      letter-spacing: .06em;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--mono);
+      transition: color .15s, border-color .15s, background .15s;
+    }
+
+    .type-btn:hover {
+      color: var(--text);
+      border-color: var(--accent2);
+    }
+
+    .type-btn.active {
+      background: rgba(123, 94, 167, .15);
+      border-color: var(--accent2);
+      color: #c4b0e0;
+    }
+
+    /* ── DNS result card ── */
+    .dns-type-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 24px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(123, 94, 167, .06);
+    }
+
+    .dns-type-label {
+      font-family: var(--sans);
+      font-size: .82rem;
+      font-weight: 700;
+      color: var(--accent2);
+      letter-spacing: .08em;
+      min-width: 52px;
+    }
+
+    .dns-record {
+      padding: 10px 24px;
+      font-size: .88rem;
+      border-bottom: 1px solid var(--border);
+      word-break: break-all;
+      line-height: 1.5;
+    }
+
+    .dns-record:last-child {
+      border-bottom: none;
+    }
+
+    .dns-record:hover {
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .dns-error {
+      padding: 10px 24px;
+      font-size: .82rem;
+      color: var(--warn);
+      font-style: italic;
+    }
+
+    /* ── Ping / TCP ── */
+    .ping-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-top: 1px solid var(--border);
+    }
+
+    .ping-stat {
+      background: var(--surface);
+      padding: 12px 16px;
+      text-align: center;
+    }
+
+    .ping-stat-val {
+      font-size: 1.1rem;
+      font-family: var(--sans);
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .ping-stat-label {
+      font-size: .65rem;
+      color: var(--muted);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .ping-output {
+      padding: 14px 20px;
+      font-size: .78rem;
+      color: var(--muted);
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-all;
+      border-top: 1px solid var(--border);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .tcp-row {
+      display: grid;
+      grid-template-columns: 80px 140px 1fr 80px;
+      padding: 10px 24px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+      font-size: .85rem;
+      transition: background .15s;
+    }
+
+    .tcp-row:last-child {
+      border-bottom: none;
+    }
+
+    .tcp-row:hover {
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .tcp-open {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .tcp-closed {
+      color: var(--muted);
+    }
+
+    .tcp-error {
+      color: var(--warn);
+      font-size: .78rem;
+    }
+
+    .tcp-ms {
+      color: var(--muted);
+      font-size: .78rem;
+      text-align: right;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <a class="logo" href="/" style="text-decoration:none">ip//lookup</a>
+    <div class="tagline">IP · Домен · rDNS · ASN · GeoIP</div>
+    <a href="/api-docs" style="
+    display:inline-block;margin-top:14px;
+    font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);text-decoration:none;
+    border:1px solid var(--border);border-radius:6px;
+    padding:5px 14px;transition:color .15s,border-color .15s">
+      API Docs ↗
+    </a>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('ip')" id="tab-ip">IP / Домен</button>
+    <button class="tab" onclick="switchTab('dns')" id="tab-dns">DNS записи</button>
+    <button class="tab" onclick="switchTab('net')" id="tab-net">Ping / TCP</button>
+  </div>
+
+  <div class="search-wrap" id="search-wrap">
+    <input id="ipInput" type="text" placeholder="IP або домен: 8.8.8.8, google.com" spellcheck="false">
+    <button class="btn" onclick="doLookup()">Пошук</button>
+  </div>
+
+
+  <div class="myip-block" id="myipBlock">
+    <div class="myip-title"><span class="myip-dot"></span>мої адреси</div>
+    <div class="myip-rows">
+      <div class="myip-cell">
+        <div class="myip-ver">IPv4</div>
+        <div class="myip-addr none" id="myipV4">визначаємо…</div>
+      </div>
+      <div class="myip-cell">
+        <div class="myip-ver">IPv6</div>
+        <div class="myip-addr none" id="myipV6">визначаємо…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dns-types" id="dns-types" style="display:none">
+    <button class="type-btn active" onclick="selectType('ALL')" id="dt-ALL">ALL</button>
+    <button class="type-btn" onclick="selectType('A')" id="dt-A">A</button>
+    <button class="type-btn" onclick="selectType('AAAA')" id="dt-AAAA">AAAA</button>
+    <button class="type-btn" onclick="selectType('CNAME')" id="dt-CNAME">CNAME</button>
+    <button class="type-btn" onclick="selectType('MX')" id="dt-MX">MX</button>
+    <button class="type-btn" onclick="selectType('NS')" id="dt-NS">NS</button>
+    <button class="type-btn" onclick="selectType('TXT')" id="dt-TXT">TXT</button>
+    <button class="type-btn" onclick="selectType('SOA')" id="dt-SOA">SOA</button>
+    <button class="type-btn" onclick="selectType('PTR')" id="dt-PTR">PTR</button>
+    <button class="type-btn" onclick="selectType('SRV')" id="dt-SRV">SRV</button>
+    <button class="type-btn" onclick="selectType('CAA')" id="dt-CAA">CAA</button>
+    <button class="type-btn" onclick="selectType('NAPTR')" id="dt-NAPTR">NAPTR</button>
+    <button class="type-btn" onclick="selectType('SSHFP')" id="dt-SSHFP">SSHFP</button>
+    <button class="type-btn" onclick="selectType('TLSA')" id="dt-TLSA">TLSA</button>
+    <button class="type-btn" onclick="selectType('DNSKEY')" id="dt-DNSKEY">DNSKEY</button>
+    <button class="type-btn" onclick="selectType('DS')" id="dt-DS">DS</button>
+    <button class="type-btn" onclick="selectType('CDS')" id="dt-CDS">CDS</button>
+    <button class="type-btn" onclick="selectType('CDNSKEY')" id="dt-CDNSKEY">CDNSKEY</button>
+    <button class="type-btn" onclick="selectType('DNSSEC')" id="dt-DNSSEC">DNSSEC</button>
+    <button class="type-btn" onclick="selectType('NSEC')" id="dt-NSEC">NSEC</button>
+    <button class="type-btn" onclick="selectType('NSEC3')" id="dt-NSEC3">NSEC3</button>
+    <button class="type-btn" onclick="selectType('HTTPS')" id="dt-HTTPS">HTTPS</button>
+    <button class="type-btn" onclick="selectType('SVCB')" id="dt-SVCB">SVCB</button>
+    <button class="type-btn" onclick="selectType('CERT')" id="dt-CERT">CERT</button>
+    <button class="type-btn" onclick="selectType('HINFO')" id="dt-HINFO">HINFO</button>
+    <button class="type-btn" onclick="selectType('LOC')" id="dt-LOC">LOC</button>
+    <button class="type-btn" onclick="selectType('RP')" id="dt-RP">RP</button>
+    <button class="type-btn" onclick="selectType('AFSDB')" id="dt-AFSDB">AFSDB</button>
+  </div>
+
+
+  <div id="net-panel" style="display:none;width:100%;max-width:640px;margin-bottom:16px;display:none">
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="type-btn active" onclick="selectNetMode('ping')" id="nm-ping">Ping</button>
+      <button class="type-btn" onclick="selectNetMode('tcp')" id="nm-tcp">TCP порти</button>
+    </div>
+
+    <!-- Ping options -->
+    <div id="ping-opts" style="display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)">
+      <span>Кількість пакетів:</span>
+      <select id="ping-count"
+        style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:4px 8px;font-family:var(--mono);font-size:.8rem">
+        <option value="4">4</option>
+        <option value="8">8</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+
+    <!-- TCP options -->
+    <div id="tcp-opts" style="display:none">
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px">
+        Порти: через кому або діапазон (напр. <span style="color:var(--accent)">80,443,22</span> або <span
+          style="color:var(--accent)">8080-8090</span>)
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px" id="port-presets">
+      </div>
+      <input id="ports-input" type="text" placeholder="80,443,22,3306"
+        style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:.85rem;padding:10px 14px;outline:none">
+    </div>
+  </div>
+
+
+  <div id="result"></div>
+
+  <script>
+    const input = document.getElementById('ipInput');
+    const result = document.getElementById('result');
+
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') doLookup(); });
+
+    function lookupIpInSearch(ip) {
+      input.value = ip;
+      doLookup();
+    }
+
+    function doLookup() {
+      const q = input.value.trim();
+      if (!q) return;
+
+      result.innerHTML = `
+    <div class="card">
+      <div class="state">
+        <div class="spinner"></div>
+        Запит…
+      </div>
+    </div>`;
+
+      fetch('/api/query?q=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(d => {
+          if (d.type === 'domain') renderDomain(d);
+          else render(d);
+        })
+        .catch(err => {
+          result.innerHTML = `
+        <div class="card">
+          <div class="state">
+            <div class="error-icon">⚠️</div>
+            Помилка: ${err.message}
+          </div>
+        </div>`;
+        });
+    }
+
+    // ── Lookup IP by clicking a chip ──
+    function lookupIp(ip) {
+      input.value = ip;
+      doLookup();
+    }
+
+    function countryFlag(iso) {
+      if (!iso) return '';
+      return `<img src="https://flagcdn.com/20x15/${iso.toLowerCase()}.png"
+               srcset="https://flagcdn.com/40x30/${iso.toLowerCase()}.png 2x"
+               width="20" height="15"
+               alt="${iso}"
+               style="border-radius:2px;vertical-align:middle;margin-right:6px;box-shadow:0 0 0 1px rgba(255,255,255,.1)">`;
+    }
+
+    function val(v, cls = '') {
+      if (v === null || v === undefined || v === '') {
+        return `<span class="row-value none">—</span>`;
+      }
+      return `<span class="row-value ${cls}">${v}</span>`;
+    }
+
+    function ipRowsHtml(d) {
+      const flag = countryFlag(d.country_iso);
+      const rows = [
+        ['rDNS', d.rdns],
+        ['Країна', d.country ? `${flag} ${d.country}` : null],
+        ['Місто', d.city],
+        ['Регіон', d.region],
+        ['Часовий пояс', d.timezone],
+        ['Координати', (d.latitude && d.longitude) ? `${d.latitude}, ${d.longitude}` : null],
+        ['ASN', d.asn ? `AS${d.asn}` : null, 'accent'],
+        ['Провайдер', d.asn_org],
+        ['IP версія', d.version ? `IPv${d.version}` : null],
+      ];
+      return rows.map(([label, value, cls = '']) => `
+    <div class="row">
+      <span class="row-label">${label}</span>
+      ${val(value, cls)}
+    </div>`).join('');
+    }
+
+    function mapHtml(d) {
+      const links = [];
+
+      if (d.latitude && d.longitude) {
+        const osmHref = `https://www.openstreetmap.org/?mlat=${d.latitude}&mlon=${d.longitude}&zoom=10`;
+        links.push(`<a class="map-link" href="${osmHref}" target="_blank" rel="noopener">↗ OpenStreetMap</a>`);
+      }
+
+      if (d.ip) {
+        links.push(`<a class="map-link" href="https://bgp.tools/prefix/${d.ip}" target="_blank" rel="noopener">↗ bgp.tools / IP</a>`);
+      }
+
+      if (d.asn) {
+        links.push(`<a class="map-link" href="https://bgp.tools/as/${d.asn}" target="_blank" rel="noopener">↗ bgp.tools / AS${d.asn}</a>`);
+      }
+
+      if (!links.length) return '';
+      return `<div class="card-footer">${links.join('')}</div>`;
+    }
+
+    // ── Render single IP ──
+    function render(d) {
+      if (d.error) {
+        result.innerHTML = `
+      <div class="card">
+        <div class="state">
+          <div class="error-icon">❌</div>
+          ${d.error}
+        </div>
+      </div>`;
+        return;
+      }
+
+      const flag = countryFlag(d.country_iso);
+      const isPrivate = d.is_private;
+      const tagHtml = `<span class="tag ${isPrivate ? 'tag-private' : 'tag-public'}">${isPrivate ? 'приватна' : 'публічна'}</span>`;
+
+      result.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="ip-badge">${d.ip}</div>
+          <div class="country-name">${d.country || 'Невідома локація'}</div>
+        </div>
+        <span class="flag">${flag}</span>
+        ${tagHtml}
+      </div>
+      <div class="rows">${ipRowsHtml(d)}</div>
+      ${mapHtml(d)}
+    </div>`;
+    }
+
+    // ── Render domain with multiple IPs ──
+    function renderDomain(d) {
+      if (d.error) {
+        result.innerHTML = `
+      <div class="card">
+        <div class="state">
+          <div class="error-icon">❌</div>
+          Не вдалось резолвити: ${d.error}
+        </div>
+      </div>`;
+        return;
+      }
+
+      const results = d.results || [];
+      const count = results.length;
+
+      // Domain summary card
+      const chipsHtml = results.map(r =>
+        `<span class="ip-chip" onclick="lookupIp('${r.ip}')" title="Деталі">${r.ip}</span>`
+      ).join('');
+
+      let html = `
+    <div class="card">
+      <div class="domain-header">
+        <div>
+          <div class="domain-badge">⬡ ${d.domain}</div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:4px">резолвінг доменного імені</div>
+        </div>
+        <span class="domain-count">${count} IP</span>
+      </div>
+      <div class="row">
+        <span class="row-label">IP адреси</span>
+        <span class="row-value">${chipsHtml || '<span class="row-value none">—</span>'}</span>
+      </div>
+    </div>`;
+
+      // Individual IP cards
+      results.forEach((r, i) => {
+        const flag = countryFlag(r.country_iso);
+        const isPrivate = r.is_private;
+        const tagHtml = `<span class="tag ${isPrivate ? 'tag-private' : 'tag-public'}">${isPrivate ? 'приватна' : 'публічна'}</span>`;
+
+        html += `
+      <div class="card" style="animation-delay:${i * 60}ms">
+        <div class="card-header">
+          <div>
+            <div class="ip-badge">${r.ip}</div>
+            <div class="country-name">${r.country || 'Невідома локація'}</div>
+          </div>
+          <span class="flag">${flag}</span>
+          ${tagHtml}
+        </div>
+        <div class="rows">${ipRowsHtml(r)}</div>
+        ${mapHtml(r)}
+      </div>`;
+      });
+
+      result.innerHTML = html;
+    }
+
+
+    // ── My IP detection ──
+    let myIpv4 = null, myIpv6 = null;
+
+    function setMyIp(elId, ip) {
+      const el = document.getElementById(elId);
+      if (!ip) {
+        el.className = 'myip-addr none';
+        el.textContent = 'недоступна';
+        return;
+      }
+      el.className = 'myip-addr';
+      el.innerHTML = `<a onclick="lookupIpInSearch('${ip}')" title="Пошук">${ip}</a>`;
+    }
+
+    function fetchWithRetry(url, retries = 3, delay = 800) {
+      return fetch(url, { cache: 'no-store' })
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .catch(err => {
+          if (retries <= 0) throw err;
+          return new Promise(res => setTimeout(res, delay))
+            .then(() => fetchWithRetry(url, retries - 1, delay));
+        });
+    }
+
+    fetch('/api/config')
+      .then(r => r.json())
+      .then(cfg => {
+        fetchWithRetry(cfg.ipv4_endpoint)
+          .then(d => { myIpv4 = d.ip; setMyIp('myipV4', d.ip); })
+          .catch(() => setMyIp('myipV4', null));
+      })
+      .catch(() => setMyIp('myipV4', null));
+
+    fetchWithRetry('/api/myip')
+      .then(d => {
+        setTimeout(() => {
+          if (d.ip === myIpv4) {
+            setMyIp('myipV6', null);
+          } else {
+            myIpv6 = d.ip;
+            setMyIp('myipV6', d.ip);
+          }
+        }, 100);
+      })
+      .catch(() => setMyIp('myipV6', null));
+    // ── Tabs ──
+    let currentTab = 'ip';
+    let currentDnsType = 'ALL';
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tab-ip').classList.toggle('active', tab === 'ip');
+      document.getElementById('tab-dns').classList.toggle('active', tab === 'dns');
+      document.getElementById('dns-types').style.display = tab === 'dns' ? 'flex' : 'none';
+      document.getElementById('myipBlock').style.display = tab === 'dns' ? 'none' : '';
+      document.getElementById('result').innerHTML = '';
+      document.getElementById('ipInput').placeholder =
+        tab === 'ip' ? 'IP або домен: 8.8.8.8, google.com' : 'Домен: google.com, fb.com';
+    }
+
+    function selectType(t) {
+      currentDnsType = t;
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('dt-' + t).classList.add('active');
+    }
+
+    // Override doLookup to handle tabs
+    const _origDoLookup = doLookup;
+    doLookup = function () {
+      if (currentTab === 'dns') doDnsLookup();
+      else _origDoLookup();
+    };
+
+    function doDnsLookup() {
+      let domain = document.getElementById('ipInput').value.trim();
+      if (!domain) return;
+
+      result.innerHTML = `
+    <div class="card">
+      <div class="state">
+        <div class="spinner"></div>
+        DNS запит…
+      </div>
+    </div>`;
+
+      const typeParam = currentDnsType === 'ALL' ? '' : '&type=' + currentDnsType;
+      fetch('/api/dns?domain=' + encodeURIComponent(domain) + typeParam)
+        .then(r => r.json())
+        .then(renderDns)
+        .catch(err => {
+          result.innerHTML = `<div class="card"><div class="state"><div class="error-icon">⚠️</div>Помилка: ${err.message}</div></div>`;
+        });
+    }
+
+    function renderDns(d) {
+      if (d.error) {
+        result.innerHTML = `<div class="card"><div class="state"><div class="error-icon">❌</div>${d.error}</div></div>`;
+        return;
+      }
+
+      const items = d.results || [];
+      if (!items.length) {
+        result.innerHTML = `<div class="card"><div class="state">Записів не знайдено</div></div>`;
+        return;
+      }
+
+      let html = '';
+      items.forEach(item => {
+        const recordsHtml = item.error
+          ? `<div class="dns-error">${item.error}</div>`
+          : item.records.map(r => `<div class="dns-record">${r}</div>`).join('');
+
+        html += `
+      <div class="card">
+        <div class="dns-type-header">
+          <span class="dns-type-label">${item.type}</span>
+          <span style="font-size:.75rem;color:var(--muted)">${item.records?.length || 0} ${item.records?.length === 1 ? 'запис' : 'записи'}</span>
+        </div>
+        ${recordsHtml}
+      </div>`;
+      });
+
+      result.innerHTML = `
+    <div class="card" style="margin-bottom:0;border-radius:10px;overflow:visible;background:transparent;border:none">
+      <div style="padding:0 0 10px;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">
+        ${d.domain}
+      </div>
+    </div>` + html;
+    }
+
+
+    // ── Net tab ──
+    let currentNetMode = 'ping';
+
+    const PORT_PRESETS = [
+      { label: 'Web', ports: '80,443,8080,8443' },
+      { label: 'Mail', ports: '25,465,587,110,995,143,993' },
+      { label: 'SSH', ports: '22' },
+      { label: 'DB', ports: '3306,5432,6379,27017' },
+      { label: 'Загальні', ports: '21,22,23,25,53,80,110,143,443,3389' },
+    ];
+
+    // Build preset buttons
+    document.getElementById('port-presets').innerHTML = PORT_PRESETS.map(p =>
+      `<button class="type-btn" onclick="applyPreset('${p.ports}')">${p.label}</button>`
+    ).join('');
+
+    function applyPreset(ports) {
+      document.getElementById('ports-input').value = ports;
+    }
+
+    function selectNetMode(mode) {
+      currentNetMode = mode;
+      document.getElementById('nm-ping').classList.toggle('active', mode === 'ping');
+      document.getElementById('nm-tcp').classList.toggle('active', mode === 'tcp');
+      document.getElementById('ping-opts').style.display = mode === 'ping' ? 'flex' : 'none';
+      document.getElementById('tcp-opts').style.display = mode === 'tcp' ? 'block' : 'none';
+      document.getElementById('result').innerHTML = '';
+    }
+
+    // Extend switchTab
+    const _prevSwitchTab = switchTab;
+    switchTab = function (tab) {
+      _prevSwitchTab(tab);
+      document.getElementById('net-panel').style.display = tab === 'net' ? 'block' : 'none';
+      document.getElementById('ipInput').placeholder = tab === 'net'
+        ? 'IP або домен: 8.8.8.8, google.com'
+        : document.getElementById('ipInput').placeholder;
+    };
+
+    // Extend doLookup
+    const _prevDoLookup2 = doLookup;
+    doLookup = function () {
+      if (currentTab === 'net') doNetLookup();
+      else _prevDoLookup2();
+    };
+
+    function doNetLookup() {
+      if (currentNetMode === 'ping') doPing();
+      else doTcpCheck();
+    }
+
+    function doPing() {
+      const host = document.getElementById('ipInput').value.trim();
+      if (!host) return;
+      const count = document.getElementById('ping-count').value;
+
+      result.innerHTML = `<div class="card"><div class="state"><div class="spinner"></div>Пінгуємо ${host}…</div></div>`;
+
+      fetch(`/api/ping?host=${encodeURIComponent(host)}&count=${count}`)
+        .then(r => r.json())
+        .then(renderPing)
+        .catch(err => {
+          result.innerHTML = `<div class="card"><div class="state"><div class="error-icon">⚠️</div>${err.message}</div></div>`;
+        });
+    }
+
+    function renderPing(d) {
+      if (d.error && !d.output) {
+        result.innerHTML = `<div class="card"><div class="state"><div class="error-icon">❌</div>${d.error}</div></div>`;
+        return;
+      }
+
+      const statusColor = d.success ? 'var(--success)' : 'var(--warn)';
+      const statusText = d.success ? '✓ Доступний' : '✗ Недоступний';
+      const loss = d.packet_loss !== null ? d.packet_loss + '%' : '—';
+      const rtt = d.rtt || {};
+
+      result.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="ip-badge">${d.host}</div>
+          <div class="country-name" style="color:${statusColor}">${statusText}</div>
+        </div>
+        <span class="tag" style="background:${d.success ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.12)'};color:${statusColor};border-color:${statusColor}40">
+          Втрати: ${loss}
+        </span>
+      </div>
+      <div class="ping-stats">
+        <div class="ping-stat">
+          <div class="ping-stat-val">${rtt.min ?? '—'}</div>
+          <div class="ping-stat-label">min ms</div>
+        </div>
+        <div class="ping-stat">
+          <div class="ping-stat-val">${rtt.avg ?? '—'}</div>
+          <div class="ping-stat-label">avg ms</div>
+        </div>
+        <div class="ping-stat">
+          <div class="ping-stat-val">${rtt.max ?? '—'}</div>
+          <div class="ping-stat-label">max ms</div>
+        </div>
+        <div class="ping-stat">
+          <div class="ping-stat-val">${rtt.mdev ?? '—'}</div>
+          <div class="ping-stat-label">mdev ms</div>
+        </div>
+      </div>
+      <div class="ping-output">${d.output || d.error || ''}</div>
+    </div>`;
+    }
+
+    function doTcpCheck() {
+      const host = document.getElementById('ipInput').value.trim();
+      const ports = document.getElementById('ports-input').value.trim();
+      if (!host) return;
+      if (!ports) { document.getElementById('ports-input').focus(); return; }
+
+      result.innerHTML = `<div class="card"><div class="state"><div class="spinner"></div>Перевіряємо порти…</div></div>`;
+
+      fetch(`/api/tcpcheck?host=${encodeURIComponent(host)}&ports=${encodeURIComponent(ports)}`)
+        .then(r => r.json())
+        .then(renderTcp)
+        .catch(err => {
+          result.innerHTML = `<div class="card"><div class="state"><div class="error-icon">⚠️</div>${err.message}</div></div>`;
+        });
+    }
+
+    function renderTcp(d) {
+      if (d.error) {
+        result.innerHTML = `<div class="card"><div class="state"><div class="error-icon">❌</div>${d.error}</div></div>`;
+        return;
+      }
+
+      const open = d.results.filter(r => r.open).length;
+      const closed = d.results.length - open;
+
+      const rows = d.results.map(r => `
+    <div class="tcp-row">
+      <span style="color:var(--muted);font-size:.8rem">${r.port}</span>
+      <span class="${r.open ? 'tcp-open' : 'tcp-closed'}">${r.open ? '● open' : '○ closed'}</span>
+      <span style="color:var(--muted);font-size:.8rem">${r.service || ''} ${r.error && !r.open ? '<span class="tcp-error">(' + r.error + ')</span>' : ''}</span>
+      <span class="tcp-ms">${r.open ? r.ms + ' ms' : ''}</span>
+    </div>`).join('');
+
+      result.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="ip-badge">${d.host}</div>
+          <div class="country-name">TCP port scan</div>
+        </div>
+        <span class="tag tag-public">${open} open</span>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 140px 1fr 80px;padding:8px 24px;border-bottom:1px solid var(--border)">
+        <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Порт</span>
+        <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Статус</span>
+        <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Сервіс</span>
+        <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:right">RTT</span>
+      </div>
+      <div class="rows">${rows}</div>
+    </div>`;
+    }
+
+  </script>
+</body>
+
+</html>
