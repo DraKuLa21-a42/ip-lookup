@@ -26,10 +26,12 @@
       --border: #1e2230;
       --accent: #00e5ff;
       --accent2: #7b5ea7;
+      --accent3: #34d399;
       --text: #e2e8f0;
       --muted: #64748b;
       --success: #10b981;
       --warn: #f59e0b;
+      --danger: #ef4444;
       --mono: 'JetBrains Mono', monospace;
       --sans: 'Inter', sans-serif;
     }
@@ -126,23 +128,6 @@
       transform: scale(.97);
     }
 
-    .btn-own {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      font-size: .8rem;
-      padding: 0 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-family: var(--mono);
-      transition: color .2s, border-color .2s;
-    }
-
-    .btn-own:hover {
-      color: var(--text);
-      border-color: var(--accent);
-    }
-
     #result {
       width: 100%;
       max-width: 640px;
@@ -171,7 +156,6 @@
       }
     }
 
-    /* Domain header */
     .domain-header {
       display: flex;
       align-items: center;
@@ -197,28 +181,6 @@
       text-transform: uppercase;
     }
 
-    /* IP sub-header inside domain results */
-    .ip-subheader {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 24px;
-      border-bottom: 1px solid var(--border);
-      background: rgba(0, 229, 255, .03);
-    }
-
-    .ip-subheader:not(:first-child) {
-      border-top: 2px solid var(--border);
-    }
-
-    .ip-sub-badge {
-      font-family: var(--sans);
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--accent);
-    }
-
-    /* IP card header */
     .card-header {
       display: flex;
       align-items: center;
@@ -277,6 +239,24 @@
       border: 1px solid rgba(245, 158, 11, .3);
     }
 
+    .tag-ok {
+      background: rgba(16, 185, 129, .15);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, .3);
+    }
+
+    .tag-warn {
+      background: rgba(245, 158, 11, .12);
+      color: var(--warn);
+      border: 1px solid rgba(245, 158, 11, .3);
+    }
+
+    .tag-danger {
+      background: rgba(239, 68, 68, .12);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, .3);
+    }
+
     .rows {
       display: flex;
       flex-direction: column;
@@ -321,6 +301,18 @@
     .row-value.none {
       color: var(--muted);
       font-style: italic;
+    }
+
+    .row-value.ok {
+      color: var(--success);
+    }
+
+    .row-value.warn {
+      color: var(--warn);
+    }
+
+    .row-value.danger {
+      color: var(--danger);
     }
 
     .card-footer {
@@ -377,7 +369,6 @@
       margin-bottom: 12px;
     }
 
-    /* clickable IP chips in domain results */
     .ip-chip {
       display: inline-block;
       background: rgba(0, 229, 255, .08);
@@ -499,6 +490,7 @@
       display: flex;
       gap: 4px;
       margin-bottom: 16px;
+      flex-wrap: wrap;
     }
 
     .tab {
@@ -681,6 +673,118 @@
       font-size: .78rem;
       text-align: right;
     }
+
+    /* ── SSL ── */
+    .ssl-summary {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ssl-stat {
+      background: var(--surface);
+      padding: 14px 18px;
+    }
+
+    .ssl-stat-label {
+      font-size: .65rem;
+      color: var(--muted);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .ssl-stat-val {
+      font-size: .95rem;
+      font-weight: 600;
+    }
+
+    .ssl-stat-val.ok {
+      color: var(--success);
+    }
+
+    .ssl-stat-val.warn {
+      color: var(--warn);
+    }
+
+    .ssl-stat-val.danger {
+      color: var(--danger);
+    }
+
+    .ssl-stat-val.neutral {
+      color: var(--text);
+    }
+
+    .ssl-chain {
+      padding: 14px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .ssl-chain-title {
+      font-size: .68rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .ssl-chain-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .82rem;
+    }
+
+    .ssl-chain-item:last-child {
+      border-bottom: none;
+    }
+
+    .ssl-chain-num {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(123, 94, 167, .2);
+      color: var(--accent2);
+      font-size: .7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .ssl-chain-cn {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .ssl-chain-meta {
+      color: var(--muted);
+      font-size: .78rem;
+      margin-top: 2px;
+    }
+
+    .ssl-san-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .ssl-san {
+      background: rgba(52, 211, 153, .08);
+      border: 1px solid rgba(52, 211, 153, .2);
+      border-radius: 4px;
+      padding: 1px 8px;
+      font-size: .78rem;
+      color: var(--accent3);
+    }
   </style>
 </head>
 
@@ -702,6 +806,7 @@
   <div class="tabs">
     <button class="tab active" onclick="switchTab('ip')" id="tab-ip">IP / Домен</button>
     <button class="tab" onclick="switchTab('dns')" id="tab-dns">DNS записи</button>
+    <button class="tab" onclick="switchTab('ssl')" id="tab-ssl">SSL</button>
     <button class="tab" onclick="switchTab('net')" id="tab-net">Ping / TCP</button>
   </div>
 
@@ -709,7 +814,6 @@
     <input id="ipInput" type="text" placeholder="IP або домен: 8.8.8.8, google.com" spellcheck="false">
     <button class="btn" onclick="doLookup()">Пошук</button>
   </div>
-
 
   <div class="myip-block" id="myipBlock">
     <div class="myip-title"><span class="myip-dot"></span>мої адреси</div>
@@ -756,14 +860,24 @@
     <button class="type-btn" onclick="selectType('AFSDB')" id="dt-AFSDB">AFSDB</button>
   </div>
 
+  <!-- SSL panel -->
+  <div id="ssl-panel" style="display:none;width:100%;max-width:640px;margin-bottom:16px">
+    <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px">
+      Порт за замовчуванням: <span style="color:var(--accent)">443</span>. Вкажіть інший якщо потрібно.
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:.8rem;color:var(--muted)">Порт:</span>
+      <input id="ssl-port" type="text" value="443" style="width:80px;background:var(--surface);border:1px solid var(--border);border-radius:6px;
+             color:var(--text);font-family:var(--mono);font-size:.85rem;padding:6px 10px;outline:none">
+    </div>
+  </div>
 
-  <div id="net-panel" style="display:none;width:100%;max-width:640px;margin-bottom:16px;display:none">
+  <div id="net-panel" style="display:none;width:100%;max-width:640px;margin-bottom:16px">
     <div style="display:flex;gap:8px;margin-bottom:10px">
       <button class="type-btn active" onclick="selectNetMode('ping')" id="nm-ping">Ping</button>
       <button class="type-btn" onclick="selectNetMode('tcp')" id="nm-tcp">TCP порти</button>
     </div>
 
-    <!-- Ping options -->
     <div id="ping-opts" style="display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)">
       <span>Кількість пакетів:</span>
       <select id="ping-count"
@@ -774,19 +888,16 @@
       </select>
     </div>
 
-    <!-- TCP options -->
     <div id="tcp-opts" style="display:none">
       <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px">
         Порти: через кому або діапазон (напр. <span style="color:var(--accent)">80,443,22</span> або <span
           style="color:var(--accent)">8080-8090</span>)
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px" id="port-presets">
-      </div>
-      <input id="ports-input" type="text" placeholder="80,443,22,3306"
-        style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:.85rem;padding:10px 14px;outline:none">
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px" id="port-presets"></div>
+      <input id="ports-input" type="text" placeholder="80,443,22,3306" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;
+             color:var(--text);font-family:var(--mono);font-size:.85rem;padding:10px 14px;outline:none">
     </div>
   </div>
-
 
   <div id="result"></div>
 
@@ -796,60 +907,48 @@
 
     input.addEventListener('keydown', e => { if (e.key === 'Enter') doLookup(); });
 
-    function lookupIpInSearch(ip) {
-      input.value = ip;
-      doLookup();
-    }
+    function lookupIpInSearch(ip) { input.value = ip; doLookup(); }
+    function lookupIp(ip) { input.value = ip; doLookup(); }
 
-    function doLookup() {
-      const q = input.value.trim();
-      if (!q) return;
-
-      result.innerHTML = `
-    <div class="card">
-      <div class="state">
-        <div class="spinner"></div>
-        Запит…
-      </div>
-    </div>`;
-
-      fetch('/api/query?q=' + encodeURIComponent(q))
-        .then(r => r.json())
-        .then(d => {
-          if (d.type === 'domain') renderDomain(d);
-          else render(d);
-        })
-        .catch(err => {
-          result.innerHTML = `
-        <div class="card">
-          <div class="state">
-            <div class="error-icon">⚠️</div>
-            Помилка: ${err.message}
-          </div>
-        </div>`;
-        });
-    }
-
-    // ── Lookup IP by clicking a chip ──
-    function lookupIp(ip) {
-      input.value = ip;
-      doLookup();
-    }
+    // ── Helpers ──────────────────────────────────────────────────────────────────
 
     function countryFlag(iso) {
       if (!iso) return '';
       return `<img src="https://flagcdn.com/20x15/${iso.toLowerCase()}.png"
                srcset="https://flagcdn.com/40x30/${iso.toLowerCase()}.png 2x"
-               width="20" height="15"
-               alt="${iso}"
+               width="20" height="15" alt="${iso}"
                style="border-radius:2px;vertical-align:middle;margin-right:6px;box-shadow:0 0 0 1px rgba(255,255,255,.1)">`;
     }
 
     function val(v, cls = '') {
-      if (v === null || v === undefined || v === '') {
+      if (v === null || v === undefined || v === '')
         return `<span class="row-value none">—</span>`;
-      }
       return `<span class="row-value ${cls}">${v}</span>`;
+    }
+
+    function loading(msg) {
+      return `<div class="card"><div class="state"><div class="spinner"></div>${msg}</div></div>`;
+    }
+
+    function errCard(msg) {
+      return `<div class="card"><div class="state"><div class="error-icon">❌</div>${msg}</div></div>`;
+    }
+
+    // ── IP / Domain ───────────────────────────────────────────────────────────────
+
+    function doLookup() {
+      const q = input.value.trim();
+      if (!q) return;
+      if (currentTab === 'dns') { doDnsLookup(); return; }
+      if (currentTab === 'ssl') { doSslLookup(); return; }
+      if (currentTab === 'net') { doNetLookup(); return; }
+
+      result.innerHTML = loading('Запит…');
+
+      fetch('/api/query?q=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(d => { if (d.type === 'domain') renderDomain(d); else render(d); })
+        .catch(err => { result.innerHTML = errCard(err.message); });
     }
 
     function ipRowsHtml(d) {
@@ -874,41 +973,21 @@
 
     function mapHtml(d) {
       const links = [];
-
       if (d.latitude && d.longitude) {
         const osmHref = `https://www.openstreetmap.org/?mlat=${d.latitude}&mlon=${d.longitude}&zoom=10`;
         links.push(`<a class="map-link" href="${osmHref}" target="_blank" rel="noopener">↗ OpenStreetMap</a>`);
       }
-
-      if (d.ip) {
-        links.push(`<a class="map-link" href="https://bgp.tools/prefix/${d.ip}" target="_blank" rel="noopener">↗ bgp.tools / IP</a>`);
-      }
-
-      if (d.asn) {
-        links.push(`<a class="map-link" href="https://bgp.tools/as/${d.asn}" target="_blank" rel="noopener">↗ bgp.tools / AS${d.asn}</a>`);
-      }
-
+      if (d.ip) links.push(`<a class="map-link" href="https://bgp.tools/prefix/${d.ip}" target="_blank" rel="noopener">↗ bgp.tools / IP</a>`);
+      if (d.asn) links.push(`<a class="map-link" href="https://bgp.tools/as/${d.asn}" target="_blank" rel="noopener">↗ bgp.tools / AS${d.asn}</a>`);
       if (!links.length) return '';
       return `<div class="card-footer">${links.join('')}</div>`;
     }
 
-    // ── Render single IP ──
     function render(d) {
-      if (d.error) {
-        result.innerHTML = `
-      <div class="card">
-        <div class="state">
-          <div class="error-icon">❌</div>
-          ${d.error}
-        </div>
-      </div>`;
-        return;
-      }
-
+      if (d.error) { result.innerHTML = errCard(d.error); return; }
       const flag = countryFlag(d.country_iso);
       const isPrivate = d.is_private;
       const tagHtml = `<span class="tag ${isPrivate ? 'tag-private' : 'tag-public'}">${isPrivate ? 'приватна' : 'публічна'}</span>`;
-
       result.innerHTML = `
     <div class="card">
       <div class="card-header">
@@ -924,27 +1003,12 @@
     </div>`;
     }
 
-    // ── Render domain with multiple IPs ──
     function renderDomain(d) {
-      if (d.error) {
-        result.innerHTML = `
-      <div class="card">
-        <div class="state">
-          <div class="error-icon">❌</div>
-          Не вдалось резолвити: ${d.error}
-        </div>
-      </div>`;
-        return;
-      }
-
+      if (d.error) { result.innerHTML = errCard('Не вдалось резолвити: ' + d.error); return; }
       const results = d.results || [];
-      const count = results.length;
-
-      // Domain summary card
       const chipsHtml = results.map(r =>
         `<span class="ip-chip" onclick="lookupIp('${r.ip}')" title="Деталі">${r.ip}</span>`
       ).join('');
-
       let html = `
     <div class="card">
       <div class="domain-header">
@@ -952,20 +1016,17 @@
           <div class="domain-badge">⬡ ${d.domain}</div>
           <div style="font-size:.78rem;color:var(--muted);margin-top:4px">резолвінг доменного імені</div>
         </div>
-        <span class="domain-count">${count} IP</span>
+        <span class="domain-count">${results.length} IP</span>
       </div>
       <div class="row">
         <span class="row-label">IP адреси</span>
         <span class="row-value">${chipsHtml || '<span class="row-value none">—</span>'}</span>
       </div>
     </div>`;
-
-      // Individual IP cards
       results.forEach((r, i) => {
         const flag = countryFlag(r.country_iso);
         const isPrivate = r.is_private;
         const tagHtml = `<span class="tag ${isPrivate ? 'tag-private' : 'tag-public'}">${isPrivate ? 'приватна' : 'публічна'}</span>`;
-
         html += `
       <div class="card" style="animation-delay:${i * 60}ms">
         <div class="card-header">
@@ -980,21 +1041,16 @@
         ${mapHtml(r)}
       </div>`;
       });
-
       result.innerHTML = html;
     }
 
+    // ── My IP ─────────────────────────────────────────────────────────────────────
 
-    // ── My IP detection ──
     let myIpv4 = null, myIpv6 = null;
 
     function setMyIp(elId, ip) {
       const el = document.getElementById(elId);
-      if (!ip) {
-        el.className = 'myip-addr none';
-        el.textContent = 'недоступна';
-        return;
-      }
+      if (!ip) { el.className = 'myip-addr none'; el.textContent = 'недоступна'; return; }
       el.className = 'myip-addr';
       el.innerHTML = `<a onclick="lookupIpInSearch('${ip}')" title="Пошук">${ip}</a>`;
     }
@@ -1021,29 +1077,38 @@
     fetchWithRetry('/api/myip')
       .then(d => {
         setTimeout(() => {
-          if (d.ip === myIpv4) {
-            setMyIp('myipV6', null);
-          } else {
-            myIpv6 = d.ip;
-            setMyIp('myipV6', d.ip);
-          }
+          if (d.ip === myIpv4) { setMyIp('myipV6', null); }
+          else { myIpv6 = d.ip; setMyIp('myipV6', d.ip); }
         }, 100);
       })
       .catch(() => setMyIp('myipV6', null));
-    // ── Tabs ──
+
+    // ── Tabs ──────────────────────────────────────────────────────────────────────
+
     let currentTab = 'ip';
     let currentDnsType = 'ALL';
 
     function switchTab(tab) {
       currentTab = tab;
-      document.getElementById('tab-ip').classList.toggle('active', tab === 'ip');
-      document.getElementById('tab-dns').classList.toggle('active', tab === 'dns');
+      ['ip', 'dns', 'ssl', 'net'].forEach(t =>
+        document.getElementById('tab-' + t).classList.toggle('active', t === tab)
+      );
       document.getElementById('dns-types').style.display = tab === 'dns' ? 'flex' : 'none';
-      document.getElementById('myipBlock').style.display = tab === 'dns' ? 'none' : '';
+      document.getElementById('ssl-panel').style.display = tab === 'ssl' ? 'block' : 'none';
+      document.getElementById('net-panel').style.display = tab === 'net' ? 'block' : 'none';
+      document.getElementById('myipBlock').style.display = (tab === 'dns' || tab === 'ssl') ? 'none' : '';
       document.getElementById('result').innerHTML = '';
-      document.getElementById('ipInput').placeholder =
-        tab === 'ip' ? 'IP або домен: 8.8.8.8, google.com' : 'Домен: google.com, fb.com';
+
+      const placeholders = {
+        ip: 'IP або домен: 8.8.8.8, google.com',
+        dns: 'Домен: google.com, fb.com',
+        ssl: 'Домен: google.com, github.com',
+        net: 'IP або домен: 8.8.8.8, google.com',
+      };
+      document.getElementById('ipInput').placeholder = placeholders[tab];
     }
+
+    // ── DNS ───────────────────────────────────────────────────────────────────────
 
     function selectType(t) {
       currentDnsType = t;
@@ -1051,52 +1116,29 @@
       document.getElementById('dt-' + t).classList.add('active');
     }
 
-    // Override doLookup to handle tabs
-    const _origDoLookup = doLookup;
-    doLookup = function () {
-      if (currentTab === 'dns') doDnsLookup();
-      else _origDoLookup();
-    };
-
     function doDnsLookup() {
-      let domain = document.getElementById('ipInput').value.trim();
+      const domain = input.value.trim();
       if (!domain) return;
-
-      result.innerHTML = `
-    <div class="card">
-      <div class="state">
-        <div class="spinner"></div>
-        DNS запит…
-      </div>
-    </div>`;
-
+      result.innerHTML = loading('DNS запит…');
       const typeParam = currentDnsType === 'ALL' ? '' : '&type=' + currentDnsType;
       fetch('/api/dns?domain=' + encodeURIComponent(domain) + typeParam)
         .then(r => r.json())
         .then(renderDns)
-        .catch(err => {
-          result.innerHTML = `<div class="card"><div class="state"><div class="error-icon">⚠️</div>Помилка: ${err.message}</div></div>`;
-        });
+        .catch(err => { result.innerHTML = errCard(err.message); });
     }
 
     function renderDns(d) {
-      if (d.error) {
-        result.innerHTML = `<div class="card"><div class="state"><div class="error-icon">❌</div>${d.error}</div></div>`;
-        return;
-      }
-
+      if (d.error) { result.innerHTML = errCard(d.error); return; }
       const items = d.results || [];
-      if (!items.length) {
-        result.innerHTML = `<div class="card"><div class="state">Записів не знайдено</div></div>`;
-        return;
-      }
-
-      let html = '';
+      if (!items.length) { result.innerHTML = `<div class="card"><div class="state">Записів не знайдено</div></div>`; return; }
+      let html = `
+    <div class="card" style="margin-bottom:0;border-radius:10px;overflow:visible;background:transparent;border:none">
+      <div style="padding:0 0 10px;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">${d.domain}</div>
+    </div>`;
       items.forEach(item => {
         const recordsHtml = item.error
           ? `<div class="dns-error">${item.error}</div>`
           : item.records.map(r => `<div class="dns-record">${r}</div>`).join('');
-
         html += `
       <div class="card">
         <div class="dns-type-header">
@@ -1106,17 +1148,123 @@
         ${recordsHtml}
       </div>`;
       });
-
-      result.innerHTML = `
-    <div class="card" style="margin-bottom:0;border-radius:10px;overflow:visible;background:transparent;border:none">
-      <div style="padding:0 0 10px;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">
-        ${d.domain}
-      </div>
-    </div>` + html;
+      result.innerHTML = html;
     }
 
+    // ── SSL ───────────────────────────────────────────────────────────────────────
 
-    // ── Net tab ──
+    function doSslLookup() {
+      const host = input.value.trim();
+      if (!host) return;
+      const port = document.getElementById('ssl-port').value.trim() || '443';
+      result.innerHTML = loading('Перевірка SSL…');
+      fetch(`/api/ssl?host=${encodeURIComponent(host)}&port=${port}`)
+        .then(r => r.json())
+        .then(renderSsl)
+        .catch(err => { result.innerHTML = errCard(err.message); });
+    }
+
+    function renderSsl(d) {
+      if (d.error && !d.common_name) {
+        result.innerHTML = errCard(d.error);
+        return;
+      }
+
+      const statusTag = d.valid
+        ? `<span class="tag tag-ok">✓ Дійсний</span>`
+        : `<span class="tag tag-danger">✗ Недійсний</span>`;
+
+      const daysColor = d.days_left < 0 ? 'danger' : d.days_left < 14 ? 'warn' : 'ok';
+      const daysText = d.days_left < 0
+        ? `прострочений ${Math.abs(d.days_left)} дн. тому`
+        : `${d.days_left} дн. залишилось`;
+
+      const boolVal = (v) => v
+        ? `<span class="row-value ok">✓ Так</span>`
+        : `<span class="row-value danger">✗ Ні</span>`;
+
+      // SAN chips
+      const sanHtml = d.san && d.san.length
+        ? `<div class="ssl-san-list">${d.san.map(s => `<span class="ssl-san">${s}</span>`).join('')}</div>`
+        : `<span class="row-value none">—</span>`;
+
+      // Summary stats
+      const summaryHtml = `
+    <div class="ssl-summary">
+      <div class="ssl-stat">
+        <div class="ssl-stat-label">Сертифікат</div>
+        <div class="ssl-stat-val ${d.trusted ? 'ok' : 'danger'}">${d.trusted ? '✓ Довірений' : '✗ Не довірений'}</div>
+      </div>
+      <div class="ssl-stat">
+        <div class="ssl-stat-label">Термін дії</div>
+        <div class="ssl-stat-val ${daysColor}">${daysText}</div>
+      </div>
+      <div class="ssl-stat">
+        <div class="ssl-stat-label">Ім'я збігається</div>
+        <div class="ssl-stat-val ${d.name_match ? 'ok' : 'danger'}">${d.name_match ? '✓ Так' : '✗ Ні'}</div>
+      </div>
+      <div class="ssl-stat">
+        <div class="ssl-stat-label">TLS версія</div>
+        <div class="ssl-stat-val neutral">${d.tls_version || '—'}</div>
+      </div>
+    </div>`;
+
+      // Rows
+      const rows = [
+        ['Common Name', d.common_name],
+        ['Дійсний з', d.not_before],
+        ['Дійсний до', d.not_after],
+        ['Видавець', d.issuer_cn ? `${d.issuer_cn}${d.issuer_country ? ', ' + d.issuer_country : ''}` : null],
+        ['Організація', d.issuer_org],
+        ['Шифр', d.cipher],
+        ['Розмір ключа', d.key_bits ? `${d.key_bits} bit` : null],
+        ['SAN', '__san__'],
+      ];
+
+      const rowsHtml = rows.map(([label, value]) => `
+    <div class="row">
+      <span class="row-label">${label}</span>
+      ${value === '__san__' ? `<span class="row-value">${sanHtml}</span>` : val(value)}
+    </div>`).join('');
+
+      // Chain
+      let chainHtml = '';
+      if (d.chain && d.chain.length) {
+        chainHtml = `
+      <div class="ssl-chain">
+        <div class="ssl-chain-title">Ланцюжок сертифікатів</div>
+        ${d.chain.map((c, i) => `
+          <div class="ssl-chain-item">
+            <div class="ssl-chain-num">${i + 1}</div>
+            <div>
+              <div class="ssl-chain-cn">${c.common_name || '—'}</div>
+              <div class="ssl-chain-meta">
+                ${c.organization ? c.organization + ' · ' : ''}
+                Видавець: ${c.issuer || '—'}<br>
+                ${c.not_before} → ${c.not_after}
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+      }
+
+      result.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="ip-badge">${d.host}</div>
+          <div class="country-name">порт ${d.port}</div>
+        </div>
+        ${statusTag}
+      </div>
+      ${summaryHtml}
+      <div class="rows">${rowsHtml}</div>
+      ${chainHtml}
+    </div>`;
+    }
+
+    // ── Net tab ───────────────────────────────────────────────────────────────────
+
     let currentNetMode = 'ping';
 
     const PORT_PRESETS = [
@@ -1127,14 +1275,11 @@
       { label: 'Загальні', ports: '21,22,23,25,53,80,110,143,443,3389' },
     ];
 
-    // Build preset buttons
     document.getElementById('port-presets').innerHTML = PORT_PRESETS.map(p =>
       `<button class="type-btn" onclick="applyPreset('${p.ports}')">${p.label}</button>`
     ).join('');
 
-    function applyPreset(ports) {
-      document.getElementById('ports-input').value = ports;
-    }
+    function applyPreset(ports) { document.getElementById('ports-input').value = ports; }
 
     function selectNetMode(mode) {
       currentNetMode = mode;
@@ -1145,54 +1290,28 @@
       document.getElementById('result').innerHTML = '';
     }
 
-    // Extend switchTab
-    const _prevSwitchTab = switchTab;
-    switchTab = function (tab) {
-      _prevSwitchTab(tab);
-      document.getElementById('net-panel').style.display = tab === 'net' ? 'block' : 'none';
-      document.getElementById('ipInput').placeholder = tab === 'net'
-        ? 'IP або домен: 8.8.8.8, google.com'
-        : document.getElementById('ipInput').placeholder;
-    };
-
-    // Extend doLookup
-    const _prevDoLookup2 = doLookup;
-    doLookup = function () {
-      if (currentTab === 'net') doNetLookup();
-      else _prevDoLookup2();
-    };
-
     function doNetLookup() {
       if (currentNetMode === 'ping') doPing();
       else doTcpCheck();
     }
 
     function doPing() {
-      const host = document.getElementById('ipInput').value.trim();
+      const host = input.value.trim();
       if (!host) return;
       const count = document.getElementById('ping-count').value;
-
-      result.innerHTML = `<div class="card"><div class="state"><div class="spinner"></div>Пінгуємо ${host}…</div></div>`;
-
+      result.innerHTML = loading(`Пінгуємо ${host}…`);
       fetch(`/api/ping?host=${encodeURIComponent(host)}&count=${count}`)
         .then(r => r.json())
         .then(renderPing)
-        .catch(err => {
-          result.innerHTML = `<div class="card"><div class="state"><div class="error-icon">⚠️</div>${err.message}</div></div>`;
-        });
+        .catch(err => { result.innerHTML = errCard(err.message); });
     }
 
     function renderPing(d) {
-      if (d.error && !d.output) {
-        result.innerHTML = `<div class="card"><div class="state"><div class="error-icon">❌</div>${d.error}</div></div>`;
-        return;
-      }
-
+      if (d.error && !d.output) { result.innerHTML = errCard(d.error); return; }
       const statusColor = d.success ? 'var(--success)' : 'var(--warn)';
       const statusText = d.success ? '✓ Доступний' : '✗ Недоступний';
       const loss = d.packet_loss !== null ? d.packet_loss + '%' : '—';
       const rtt = d.rtt || {};
-
       result.innerHTML = `
     <div class="card">
       <div class="card-header">
@@ -1205,52 +1324,30 @@
         </span>
       </div>
       <div class="ping-stats">
-        <div class="ping-stat">
-          <div class="ping-stat-val">${rtt.min ?? '—'}</div>
-          <div class="ping-stat-label">min ms</div>
-        </div>
-        <div class="ping-stat">
-          <div class="ping-stat-val">${rtt.avg ?? '—'}</div>
-          <div class="ping-stat-label">avg ms</div>
-        </div>
-        <div class="ping-stat">
-          <div class="ping-stat-val">${rtt.max ?? '—'}</div>
-          <div class="ping-stat-label">max ms</div>
-        </div>
-        <div class="ping-stat">
-          <div class="ping-stat-val">${rtt.mdev ?? '—'}</div>
-          <div class="ping-stat-label">mdev ms</div>
-        </div>
+        <div class="ping-stat"><div class="ping-stat-val">${rtt.min ?? '—'}</div><div class="ping-stat-label">min ms</div></div>
+        <div class="ping-stat"><div class="ping-stat-val">${rtt.avg ?? '—'}</div><div class="ping-stat-label">avg ms</div></div>
+        <div class="ping-stat"><div class="ping-stat-val">${rtt.max ?? '—'}</div><div class="ping-stat-label">max ms</div></div>
+        <div class="ping-stat"><div class="ping-stat-val">${rtt.mdev ?? '—'}</div><div class="ping-stat-label">mdev ms</div></div>
       </div>
       <div class="ping-output">${d.output || d.error || ''}</div>
     </div>`;
     }
 
     function doTcpCheck() {
-      const host = document.getElementById('ipInput').value.trim();
+      const host = input.value.trim();
       const ports = document.getElementById('ports-input').value.trim();
       if (!host) return;
       if (!ports) { document.getElementById('ports-input').focus(); return; }
-
-      result.innerHTML = `<div class="card"><div class="state"><div class="spinner"></div>Перевіряємо порти…</div></div>`;
-
+      result.innerHTML = loading('Перевіряємо порти…');
       fetch(`/api/tcpcheck?host=${encodeURIComponent(host)}&ports=${encodeURIComponent(ports)}`)
         .then(r => r.json())
         .then(renderTcp)
-        .catch(err => {
-          result.innerHTML = `<div class="card"><div class="state"><div class="error-icon">⚠️</div>${err.message}</div></div>`;
-        });
+        .catch(err => { result.innerHTML = errCard(err.message); });
     }
 
     function renderTcp(d) {
-      if (d.error) {
-        result.innerHTML = `<div class="card"><div class="state"><div class="error-icon">❌</div>${d.error}</div></div>`;
-        return;
-      }
-
+      if (d.error) { result.innerHTML = errCard(d.error); return; }
       const open = d.results.filter(r => r.open).length;
-      const closed = d.results.length - open;
-
       const rows = d.results.map(r => `
     <div class="tcp-row">
       <span style="color:var(--muted);font-size:.8rem">${r.port}</span>
@@ -1258,7 +1355,6 @@
       <span style="color:var(--muted);font-size:.8rem">${r.service || ''} ${r.error && !r.open ? '<span class="tcp-error">(' + r.error + ')</span>' : ''}</span>
       <span class="tcp-ms">${r.open ? r.ms + ' ms' : ''}</span>
     </div>`).join('');
-
       result.innerHTML = `
     <div class="card">
       <div class="card-header">
@@ -1268,7 +1364,7 @@
         </div>
         <span class="tag tag-public">${open} open</span>
       </div>
-      <div style="display:grid;grid-template-columns:60px 140px 1fr 80px;padding:8px 24px;border-bottom:1px solid var(--border)">
+      <div style="display:grid;grid-template-columns:80px 140px 1fr 80px;padding:8px 24px;border-bottom:1px solid var(--border)">
         <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Порт</span>
         <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Статус</span>
         <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Сервіс</span>
@@ -1277,7 +1373,6 @@
       <div class="rows">${rows}</div>
     </div>`;
     }
-
   </script>
 </body>
 
