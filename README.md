@@ -21,7 +21,7 @@
 useradd dev
 mkdir /opt/scripts
 cd /opt/scripts
-git clone ip-lookup
+git clone https://github.com/DraKuLa21-a42/ip-lookup.git
 cd ip-lookup
 python3 -m venv venv
 source venv/bin/acivate
