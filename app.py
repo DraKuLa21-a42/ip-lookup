@@ -789,6 +789,9 @@ def api_tcpcheck():
     results = [results_map[p] for p in ports]
     return jsonify({"host": host, "results": results})
 
+@app.route("/api-docs")
+def api_docs():
+    return render_template("api.html")
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
