@@ -23,6 +23,9 @@ DNS_RESOLVER_PORT = 53           # замінити на свій порт
 
 load_dotenv()
 
+LOG_DIR = os.path.join(os.path.dirname(__file__), "log")
+os.makedirs(LOG_DIR, exist_ok=True)
+
 custom_resolver = dns.resolver.Resolver(configure=False)
 custom_resolver.nameservers = [DNS_RESOLVER_HOST]
 custom_resolver.port = DNS_RESOLVER_PORT

@@ -19,7 +19,7 @@
 
 ```bash
 useradd dev
-mkdir /opt/scripts
+mkdir -p /opt/scripts
 cd /opt/scripts
 git clone https://github.com/DraKuLa21-a42/ip-lookup.git
 cd ip-lookup
