@@ -48,6 +48,9 @@ systemctl enable --now ip-lookup
 systemctl status ip-lookup
 systemctl restart nginx 
 
+crontab -e
+додати:
+'11 2 * * * /bin/bash /opt/scripts/ip-lookup/update-geolite.sh'
 ```
 
 ## DNS налаштування
@@ -74,7 +77,7 @@ GET /api/myip
 ```
 
 ```json
-{"ip": "2a03:69e0::1", "version": 6}
+{"ip": "2a03::1", "version": 6}
 ```
 
 ---
