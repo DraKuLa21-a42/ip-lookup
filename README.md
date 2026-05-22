@@ -27,15 +27,19 @@ python3 -m venv venv
 source venv/bin/acivate
 pip install -r requirements.txt
 deactivate
+
 ```
 
 Створи `.env` файл:
 
 ```env
 IPV4_ENDPOINT=https://ip-lookup-v4.example.com/api/myip
+DNS_RESOLVER_HOST=1.1.1.1
+DNS_RESOLVER_PORT=53
 ```
 
 > `IPV4_ENDPOINT` — піддомен з тільки `A` записом у DNS. Потрібен для коректного визначення IPv4 адреси клієнта коли основний домен має і `A` і `AAAA`.
+> `DNS_RESOLVER_HOST`, `DNS_RESOLVER_PORT` - Можливість вказати свій DNS сервер. Якщо DNS_RESOLVER не буде вказаний, буде використовуватись 8.8.8.8.
 
 Запуск:
 

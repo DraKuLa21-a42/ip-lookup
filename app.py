@@ -17,14 +17,13 @@ import dns.message
 import dns.query
 import dns.rdatatype
 
-# ── Кастомний DNS резолвер ────────────────────────────────────────────────────
-DNS_RESOLVER_HOST = '127.0.0.1'  # замінити на свій
-DNS_RESOLVER_PORT = 53           # замінити на свій порт
-
 load_dotenv()
 
 LOG_DIR = os.path.join(os.path.dirname(__file__), "log")
 os.makedirs(LOG_DIR, exist_ok=True)
+
+DNS_RESOLVER_HOST = os.environ.get("DNS_RESOLVER_HOST", "8.8.8.8")
+DNS_RESOLVER_PORT = int(os.environ.get("DNS_RESOLVER_PORT", 53))
 
 custom_resolver = dns.resolver.Resolver(configure=False)
 custom_resolver.nameservers = [DNS_RESOLVER_HOST]
