@@ -61,6 +61,7 @@ function renderWhois(d) {
         ['Реєстрант', d.registrant_name],
         ['Організація', d.registrant_org],
         ['Країна', d.registrant_country],
+        ['Місто', d.registrant_city],
         ['Email', d.registrant_email],
     ] : [
         ['IP', d.ip],
@@ -102,7 +103,7 @@ function renderRdap(d) {
         ['Створено', fmtDate(d.created)],
         ['Оновлено', fmtDate(d.updated)],
         ['Спливає', fmtDate(d.expires)],
-        ['DNSSEC делег.', d.dnssec_delegation != null ? (d.dnssec_delegation ? 'так' : 'ні') : null],
+        ['DNSSEC', d.dnssec_delegation != null ? (d.dnssec_delegation ? 'yes' : 'no') : null],
     ] : d.type === 'ip' ? [
         ['IP', d.ip],
         ['Handle', d.handle],

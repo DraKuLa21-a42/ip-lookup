@@ -108,8 +108,10 @@ RATE_LIMITS = {
     'default':  (30, 60),
     'ping':     (10, 60),
     'tcpcheck': (10, 60),
-    'dns':      (30, 60),
+    'dns':      (10, 60),
     'ssl':      (10, 60),
+    'whois':    (10, 60),
+    'rdap':     (10, 60),
 }
 
 _CLEANUP_INTERVAL = 300
@@ -797,21 +799,14 @@ def api_tcpcheck():
 # WHOIS
 # ═════════════════════════════════════════════════════════════════════════════
 
-RATE_LIMITS['whois'] = (10, 60)   # 10 запитів / хв — WHOIS-сервери не люблять flood
-
-
 def _fmt_date(v):
-    """datetime / list[datetime] → ISO-рядок або список рядків."""
+    """datetime / list[datetime] → ISO-рядок (перша дата)."""
     if v is None:
         return None
     if isinstance(v, list):
-        seen, out = set(), []
-        for d in v:
-            s = d.isoformat() if hasattr(d, 'isoformat') else str(d)
-            if s not in seen:
-                seen.add(s)
-                out.append(s)
-        return out[0] if len(out) == 1 else out
+        v = v[0] if v else None
+        if v is None:
+            return None
     return v.isoformat() if hasattr(v, 'isoformat') else str(v)
 
 
@@ -836,6 +831,13 @@ def do_whois_domain(domain: str) -> dict:
 
     if not w or not w.domain_name:
         return {"error": "Не вдалось отримати WHOIS-дані (домен не зареєстрований або недоступний)"}
+    
+    raw = w.text if hasattr(w, 'text') else None
+    if raw:
+        raw = "\n".join(
+            line for line in raw.splitlines()
+            if not line.startswith("% Request from")
+        )
 
     return {
         "type":            "domain",
@@ -853,11 +855,14 @@ def do_whois_domain(domain: str) -> dict:
         "registrant_name":    getattr(w, 'name',         None),
         "registrant_org":     getattr(w, 'org',          None),
         "registrant_country": getattr(w, 'country',      None),
+        "registrant_city":    getattr(w, 'city',         None),
         "registrant_email":   getattr(w, 'emails',       None),
         "admin_email":        getattr(w, 'admin_email',  None),
         "tech_email":         getattr(w, 'tech_email',   None),
         # Сирий текст (завжди корисний)
-        "raw": w.text if hasattr(w, 'text') else None,
+        #"raw": w.text if hasattr(w, 'text') else None,
+        "raw": raw,
+        
     }
 
 
@@ -883,6 +888,7 @@ def do_whois_ip(ip: str) -> dict:
         result["netrange"]   = _field(r'^(?:NetRange|inetnum)\s*:\s*(.+)$')
         result["cidr"]       = _field(r'^(?:CIDR|route)\s*:\s*(.+)$')
         result["country"]    = _field(r'^(?:Country|country)\s*:\s*(.+)$')
+        result["city"]       = _field(r'^(?:City|city)\s*:\s*(.+)$')
         result["org"]        = _field(r'^(?:OrgName|org-name|org)\s*:\s*(.+)$')
         result["descr"]      = _field(r'^(?:descr|OrgTechName)\s*:\s*(.+)$')
         result["abuse_email"] = _field(r'^(?:OrgAbuseEmail|abuse-mailbox)\s*:\s*(.+)$')
@@ -928,8 +934,6 @@ def api_whois():
 # ═════════════════════════════════════════════════════════════════════════════
 # RDAP  (Registration Data Access Protocol — RFC 9083 / RFC 9224)
 # ═════════════════════════════════════════════════════════════════════════════
-
-RATE_LIMITS['rdap'] = (20, 60)
 
 # Bootstrap-URL для RDAP (IANA офіційні)
 RDAP_DOMAIN_BOOTSTRAP = "https://data.iana.org/rdap/dns.json"
