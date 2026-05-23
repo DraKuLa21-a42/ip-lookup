@@ -2,13 +2,14 @@
  * main.js — entry point
  * Orchestrates tabs, "my IP" widget, and routes search actions.
  */
-import { doLookup }              from './ip.js';
-import { doDnsLookup }           from './dns.js';
-import { doSslLookup }           from './ssl.js';
+import { doLookup } from './ip.js';
+import { doDnsLookup } from './dns.js';
+import { doSslLookup } from './ssl.js';
 import { doPing, doTcpCheck, PORT_PRESETS } from './net.js';
+import { runWhois, selectWhoisMode } from './whois.js';
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
-const ipInput  = document.getElementById('ipInput');
+const ipInput = document.getElementById('ipInput');
 const resultEl = document.getElementById('result');
 
 // ── Global helpers (used by inline onclick in rendered HTML) ──────────────
@@ -16,6 +17,8 @@ window.lookupIp = window.lookupIpInSearch = (ip) => {
   ipInput.value = ip;
   dispatch();
 };
+
+window.selectWhoisMode = selectWhoisMode;
 
 // ── Dispatch ──────────────────────────────────────────────────────────────
 function dispatch() {
@@ -28,7 +31,8 @@ function dispatch() {
       ? doPing(q, document.getElementById('ping-count').value, resultEl)
       : doTcpCheck(q, document.getElementById('ports-input').value.trim(), resultEl);
       break;
-    default:    doLookup(q, resultEl, window.lookupIp);
+    case 'whois': runWhois(q); break;
+    default: doLookup(q, resultEl, window.lookupIp);
   }
 }
 
@@ -39,23 +43,25 @@ document.getElementById('search-btn').addEventListener('click', dispatch);
 let currentTab = 'ip';
 
 const TAB_PLACEHOLDERS = {
-  ip:  'IP або домен: 8.8.8.8, google.com',
+  ip: 'IP або домен: 8.8.8.8, google.com',
   dns: 'Домен: google.com, fb.com',
   ssl: 'Домен: google.com, github.com',
   net: 'IP або домен: 8.8.8.8, google.com',
+  whois: 'Домен, IP або ASN: example.com, 8.8.8.8, AS15169',
 };
 
 window.switchTab = (tab) => {
   currentTab = tab;
-  ['ip', 'dns', 'ssl', 'net'].forEach(t =>
+  ['ip', 'dns', 'ssl', 'net', 'whois'].forEach(t =>
     document.getElementById('tab-' + t).classList.toggle('active', t === tab)
   );
-  document.getElementById('dns-types').style.display   = tab === 'dns' ? 'flex' : 'none';
-  document.getElementById('ssl-panel').style.display   = tab === 'ssl' ? 'block' : 'none';
-  document.getElementById('net-panel').style.display   = tab === 'net' ? 'block' : 'none';
-  document.getElementById('myipBlock').style.display   = (tab === 'dns' || tab === 'ssl') ? 'none' : '';
+  document.getElementById('dns-types').style.display = tab === 'dns' ? 'flex' : 'none';
+  document.getElementById('ssl-panel').style.display = tab === 'ssl' ? 'block' : 'none';
+  document.getElementById('net-panel').style.display = tab === 'net' ? 'block' : 'none';
+  document.getElementById('whois-panel').style.display = tab === 'whois' ? 'block' : 'none';
+  document.getElementById('myipBlock').style.display = (tab === 'dns' || tab === 'ssl' || tab === 'whois') ? 'none' : '';
   resultEl.innerHTML = '';
-  ipInput.placeholder = TAB_PLACEHOLDERS[tab];
+  ipInput.placeholder = TAB_PLACEHOLDERS[tab] ?? TAB_PLACEHOLDERS.ip;
 };
 
 // ── DNS type selector ─────────────────────────────────────────────────────
@@ -75,7 +81,7 @@ window.selectNetMode = (mode) => {
   document.getElementById('nm-ping').classList.toggle('active', mode === 'ping');
   document.getElementById('nm-tcp').classList.toggle('active', mode === 'tcp');
   document.getElementById('ping-opts').style.display = mode === 'ping' ? 'flex' : 'none';
-  document.getElementById('tcp-opts').style.display  = mode === 'tcp'  ? 'block' : 'none';
+  document.getElementById('tcp-opts').style.display = mode === 'tcp' ? 'block' : 'none';
   resultEl.innerHTML = '';
 };
 

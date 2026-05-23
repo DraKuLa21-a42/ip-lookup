@@ -927,6 +927,200 @@ header {
   outline: none;
 }
 
+/* ── WHOIS / RDAP UI — додай до styles.css ──────────────────────────────── */
+
+/* ── панель режиму ── */
+.whois-mode-row {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: .75rem;
+}
+
+.whois-hint {
+  font-size: .83rem;
+  color: var(--text-muted, #888);
+  margin-top: .25rem;
+}
+
+.whois-hint span {
+  font-family: monospace;
+  background: var(--bg-code, rgba(255, 255, 255, .07));
+  padding: .1em .35em;
+  border-radius: 3px;
+}
+
+/* ── картка результату ── */
+.whois-card {
+  margin-top: 1.5rem;
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: .9rem;
+}
+
+.wcard-header {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .85rem 1.1rem;
+  background: var(--surface, #111);
+  border-bottom: 1px solid var(--border, #2a2a2a);
+  flex-wrap: wrap;
+}
+
+.wcard-badge {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  padding: .2em .6em;
+  border-radius: 4px;
+  background: var(--accent, #3b6fd4);
+  color: #fff;
+}
+
+.wcard-badge.ip {
+  background: #2a7a5e;
+}
+
+.wcard-badge.domain {
+  background: #3b6fd4;
+}
+
+.wcard-badge.rdap {
+  background: #7b3fd4;
+}
+
+.wcard-title {
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text, #eee);
+  word-break: break-all;
+}
+
+.rdap-tag {
+  margin-left: auto;
+  font-size: .7rem;
+  color: var(--text-muted, #888);
+  font-family: monospace;
+  border: 1px solid var(--border, #333);
+  padding: .1em .45em;
+  border-radius: 4px;
+}
+
+/* ── таблиця полів ── */
+.wcard-table {
+  width: 100%;
+  border-collapse: collapse;
+  padding: .5rem 1.1rem;
+  display: block;
+}
+
+.wcard-table tr {
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, .05));
+}
+
+.wcard-table tr:last-child {
+  border-bottom: none;
+}
+
+.wcard-table td {
+  padding: .45rem 1.1rem;
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.wk {
+  color: var(--text-muted, #888);
+  white-space: nowrap;
+  width: 9rem;
+  font-size: .82rem;
+}
+
+.wv {
+  color: var(--text, #ddd);
+  font-family: monospace;
+  word-break: break-all;
+  white-space: pre-wrap;
+  /* для переносів name-servers і статусів */
+  font-size: .85rem;
+}
+
+/* ── блок entities ── */
+.entities-section {
+  border-top: 1px solid var(--border, #2a2a2a);
+  padding: .6rem 1.1rem 1rem;
+}
+
+.entities-label {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-muted, #888);
+  margin-bottom: .6rem;
+}
+
+.entity-card {
+  background: var(--bg-subtle, rgba(255, 255, 255, .03));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, .07));
+  border-radius: 7px;
+  margin-bottom: .5rem;
+  overflow: hidden;
+}
+
+.entity-role {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--accent-light, #7aafff);
+  padding: .4rem .9rem .2rem;
+}
+
+/* ── raw-дані ── */
+.raw-toggle {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border, #2a2a2a);
+  color: var(--text-muted, #888);
+  font-size: .78rem;
+  padding: .5rem 1.1rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.raw-toggle:hover {
+  background: var(--hover, rgba(255, 255, 255, .04));
+}
+
+.raw-pre {
+  margin: 0;
+  padding: .75rem 1.1rem 1rem;
+  font-size: .78rem;
+  line-height: 1.55;
+  color: var(--text-code, #a8d0a0);
+  white-space: pre-wrap;
+  word-break: break-all;
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, .05));
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+/* ── помилка ── */
+.error-box {
+  margin-top: 1.2rem;
+  padding: .8rem 1.1rem;
+  background: rgba(200, 50, 50, .1);
+  border: 1px solid rgba(200, 50, 50, .3);
+  border-radius: 8px;
+  color: #f08080;
+  font-size: .88rem;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .row {

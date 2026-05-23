@@ -23,6 +23,7 @@
   <div class="tabs">
     <button class="tab active" id="tab-ip" onclick="switchTab('ip')">IP / Домен</button>
     <button class="tab" id="tab-dns" onclick="switchTab('dns')">DNS записи</button>
+    <button class="tab" id="tab-whois" onclick="switchTab('whois')">WHOIS / RDAP</button>
     <button class="tab" id="tab-ssl" onclick="switchTab('ssl')">SSL</button>
     <button class="tab" id="tab-net" onclick="switchTab('net')">Ping / TCP</button>
   </div>
@@ -113,6 +114,13 @@
       </div>
       <div class="port-presets" id="port-presets"></div>
       <input id="ports-input" type="text" placeholder="80,443,22,3306">
+    </div>
+  </div>
+
+  <div id="whois-panel" style="display:none">
+    <div class="whois-mode-row">
+      <button class="type-btn active" id="wm-whois" onclick="selectWhoisMode('whois')">WHOIS</button>
+      <button class="type-btn" id="wm-rdap" onclick="selectWhoisMode('rdap')">RDAP</button>
     </div>
   </div>
 

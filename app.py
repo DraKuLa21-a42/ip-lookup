@@ -12,6 +12,9 @@ import threading
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
+import whois as pywhois   # python-whois
+import requests as _req
+import json as _json
 
 import dns.resolver
 import dns.message
@@ -789,6 +792,476 @@ def api_tcpcheck():
     results = [results_map[p] for p in ports]
     return jsonify({"host": host, "results": results})
 
+
+# ═════════════════════════════════════════════════════════════════════════════
+# WHOIS
+# ═════════════════════════════════════════════════════════════════════════════
+
+RATE_LIMITS['whois'] = (10, 60)   # 10 запитів / хв — WHOIS-сервери не люблять flood
+
+
+def _fmt_date(v):
+    """datetime / list[datetime] → ISO-рядок або список рядків."""
+    if v is None:
+        return None
+    if isinstance(v, list):
+        seen, out = set(), []
+        for d in v:
+            s = d.isoformat() if hasattr(d, 'isoformat') else str(d)
+            if s not in seen:
+                seen.add(s)
+                out.append(s)
+        return out[0] if len(out) == 1 else out
+    return v.isoformat() if hasattr(v, 'isoformat') else str(v)
+
+
+def _dedup(v):
+    """Список → унікальні значення; одне значення → як є."""
+    if isinstance(v, list):
+        seen, out = set(), []
+        for x in v:
+            k = str(x).lower()
+            if k not in seen:
+                seen.add(k)
+                out.append(x)
+        return out[0] if len(out) == 1 else out
+    return v
+
+
+def do_whois_domain(domain: str) -> dict:
+    try:
+        w = pywhois.whois(domain)
+    except Exception as e:
+        return {"error": str(e)}
+
+    if not w or not w.domain_name:
+        return {"error": "Не вдалось отримати WHOIS-дані (домен не зареєстрований або недоступний)"}
+
+    return {
+        "type":            "domain",
+        "domain":          _dedup(w.domain_name),
+        "registrar":       w.registrar,
+        "registrar_url":   w.registrar_url if hasattr(w, 'registrar_url') else None,
+        "whois_server":    w.whois_server  if hasattr(w, 'whois_server')  else None,
+        "status":          _dedup(w.status),
+        "name_servers":    _dedup([ns.lower() for ns in w.name_servers] if w.name_servers else []),
+        "created":         _fmt_date(w.creation_date),
+        "updated":         _fmt_date(w.updated_date),
+        "expires":         _fmt_date(w.expiration_date),
+        "dnssec":          w.dnssec if hasattr(w, 'dnssec') else None,
+        # Контактні дані (якщо не приховані GDPR)
+        "registrant_name":    getattr(w, 'name',         None),
+        "registrant_org":     getattr(w, 'org',          None),
+        "registrant_country": getattr(w, 'country',      None),
+        "registrant_email":   getattr(w, 'emails',       None),
+        "admin_email":        getattr(w, 'admin_email',  None),
+        "tech_email":         getattr(w, 'tech_email',   None),
+        # Сирий текст (завжди корисний)
+        "raw": w.text if hasattr(w, 'text') else None,
+    }
+
+
+def do_whois_ip(ip: str) -> dict:
+    """WHOIS для IP через системний whois або socket до whois.arin.net."""
+    try:
+        proc = subprocess.run(
+            ['whois', ip],
+            capture_output=True, text=True, timeout=15
+        )
+        raw = proc.stdout.strip()
+        if not raw:
+            return {"error": "Порожня відповідь WHOIS"}
+
+        result: dict = {"type": "ip", "ip": ip, "raw": raw}
+
+        # Парсимо найпоширеніші поля
+        def _field(pattern: str) -> str | None:
+            m = re.search(pattern, raw, re.IGNORECASE | re.MULTILINE)
+            return m.group(1).strip() if m else None
+
+        result["netname"]    = _field(r'^(?:NetName|netname)\s*:\s*(.+)$')
+        result["netrange"]   = _field(r'^(?:NetRange|inetnum)\s*:\s*(.+)$')
+        result["cidr"]       = _field(r'^(?:CIDR|route)\s*:\s*(.+)$')
+        result["country"]    = _field(r'^(?:Country|country)\s*:\s*(.+)$')
+        result["org"]        = _field(r'^(?:OrgName|org-name|org)\s*:\s*(.+)$')
+        result["descr"]      = _field(r'^(?:descr|OrgTechName)\s*:\s*(.+)$')
+        result["abuse_email"] = _field(r'^(?:OrgAbuseEmail|abuse-mailbox)\s*:\s*(.+)$')
+
+        # Визначаємо реєстра (RIR)
+        for rir in ('ARIN', 'RIPE', 'APNIC', 'LACNIC', 'AFRINIC'):
+            if rir.lower() in raw.lower():
+                result["rir"] = rir
+                break
+
+        return result
+    except subprocess.TimeoutExpired:
+        return {"error": "WHOIS timeout"}
+    except FileNotFoundError:
+        return {"error": "Команда 'whois' не знайдена на сервері"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.route("/api/whois")
+@rate_limited('whois')
+def api_whois():
+    q = sanitize_host(request.args.get("q", ""))
+    if not q:
+        return jsonify({"error": "Параметр q не вказано"}), 400
+
+    if is_domain(q):
+        # Доменне ім'я
+        if not _HOST_RE.match(q):
+            return jsonify({"error": "Недопустимі символи в імені домену"}), 400
+        return jsonify(do_whois_domain(q))
+    else:
+        # IP-адреса
+        try:
+            ipaddress.ip_address(q)
+        except ValueError:
+            return jsonify({"error": f"Невалідний запит: {q}"}), 400
+        if is_blocked_ip(q):
+            return jsonify({"error": "Приватні та зарезервовані адреси заборонені"}), 403
+        return jsonify(do_whois_ip(q))
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# RDAP  (Registration Data Access Protocol — RFC 9083 / RFC 9224)
+# ═════════════════════════════════════════════════════════════════════════════
+
+RATE_LIMITS['rdap'] = (20, 60)
+
+# Bootstrap-URL для RDAP (IANA офіційні)
+RDAP_DOMAIN_BOOTSTRAP = "https://data.iana.org/rdap/dns.json"
+RDAP_IPV4_BOOTSTRAP   = "https://data.iana.org/rdap/ipv4.json"
+RDAP_IPV6_BOOTSTRAP   = "https://data.iana.org/rdap/ipv6.json"
+RDAP_ASN_BOOTSTRAP    = "https://data.iana.org/rdap/asn.json"
+
+# Кеш bootstrap-даних (в пам'яті, на час роботи процесу)
+_rdap_bootstrap_cache: dict[str, tuple[float, dict]] = {}
+_RDAP_CACHE_TTL = 3600  # 1 година
+
+
+def _load_bootstrap(url: str) -> dict | None:
+    now = time.time()
+    if url in _rdap_bootstrap_cache:
+        ts, data = _rdap_bootstrap_cache[url]
+        if now - ts < _RDAP_CACHE_TTL:
+            return data
+    try:
+        r = _req.get(url, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        _rdap_bootstrap_cache[url] = (now, data)
+        return data
+    except Exception:
+        return None
+
+
+def _find_rdap_server_domain(domain: str) -> str | None:
+    """Знаходить RDAP-сервер для TLD через IANA bootstrap."""
+    tld = domain.rsplit('.', 1)[-1].lower()
+    bootstrap = _load_bootstrap(RDAP_DOMAIN_BOOTSTRAP)
+    if not bootstrap:
+        # Fallback на загальновідомий сервер
+        return f"https://rdap.org/domain/{domain}"
+    for entry in bootstrap.get("services", []):
+        tlds, urls = entry[0], entry[1]
+        if tld in [t.lower() for t in tlds]:
+            return urls[0].rstrip('/') + f"/domain/{domain}"
+    # Fallback: rdap.org — агрегатор
+    return f"https://rdap.org/domain/{domain}"
+
+
+def _find_rdap_server_ip(ip: str) -> str | None:
+    """Знаходить RDAP-сервер для IP через IANA bootstrap."""
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return None
+
+    url = RDAP_IPV4_BOOTSTRAP if addr.version == 4 else RDAP_IPV6_BOOTSTRAP
+    bootstrap = _load_bootstrap(url)
+    if not bootstrap:
+        return f"https://rdap.org/ip/{ip}"
+
+    for entry in bootstrap.get("services", []):
+        prefixes, urls = entry[0], entry[1]
+        for prefix in prefixes:
+            try:
+                if addr in ipaddress.ip_network(prefix, strict=False):
+                    return urls[0].rstrip('/') + f"/ip/{ip}"
+            except Exception:
+                continue
+    return f"https://rdap.org/ip/{ip}"
+
+
+def _find_rdap_server_asn(asn: int) -> str | None:
+    """Знаходить RDAP-сервер для ASN через IANA bootstrap."""
+    bootstrap = _load_bootstrap(RDAP_ASN_BOOTSTRAP)
+    if not bootstrap:
+        return f"https://rdap.org/autnum/{asn}"
+    for entry in bootstrap.get("services", []):
+        ranges, urls = entry[0], entry[1]
+        for r in ranges:
+            try:
+                parts = r.split('-')
+                lo = int(parts[0])
+                hi = int(parts[1]) if len(parts) > 1 else lo
+                if lo <= asn <= hi:
+                    return urls[0].rstrip('/') + f"/autnum/{asn}"
+            except Exception:
+                continue
+    return f"https://rdap.org/autnum/{asn}"
+
+
+def _fetch_rdap(rdap_url: str) -> dict:
+    """Виконує HTTP GET до RDAP-сервера, повертає розпарсений JSON."""
+    try:
+        headers = {"Accept": "application/rdap+json, application/json"}
+        r = _req.get(rdap_url, headers=headers, timeout=15, allow_redirects=True)
+        r.raise_for_status()
+        return r.json()
+    except _req.exceptions.HTTPError as e:
+        return {"error": f"HTTP {e.response.status_code}: {e.response.reason}"}
+    except _req.exceptions.Timeout:
+        return {"error": "RDAP timeout"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── RDAP-парсери ──────────────────────────────────────────────────────────────
+
+def _rdap_vcard(vcard_array: list) -> dict:
+    """Витягує поля з vCard (jCard формат RFC 7095)."""
+    result = {}
+    if not vcard_array or len(vcard_array) < 2:
+        return result
+    for prop in vcard_array[1:]:
+        if not isinstance(prop, list) or len(prop) < 4:
+            continue
+        name, _, _, value = prop[0], prop[1], prop[2], prop[3]
+        if name == 'fn':
+            result['name'] = value
+        elif name == 'org':
+            result['org'] = value[0] if isinstance(value, list) else value
+        elif name == 'email':
+            result.setdefault('emails', []).append(value)
+        elif name == 'tel':
+            result.setdefault('phones', []).append(value)
+        elif name == 'adr':
+            # value: [pobox, ext, street, city, region, postal, country]
+            if isinstance(value, list):
+                result['address'] = {
+                    'street': value[2], 'city': value[3],
+                    'region': value[4], 'postal': value[5],
+                    'country': value[6],
+                }
+    return result
+
+
+def _rdap_entities(entities: list) -> list[dict]:
+    """Парсить масив entities (registrant, registrar, abuse тощо)."""
+    out = []
+    for ent in (entities or []):
+        roles = ent.get('roles', [])
+        e: dict = {"roles": roles}
+        vc = ent.get('vcardArray')
+        if vc:
+            e.update(_rdap_vcard(vc))
+        # Рекурсивно — abuse contact може бути у вкладених entities
+        sub = ent.get('entities', [])
+        if sub:
+            e['entities'] = _rdap_entities(sub)
+        if ent.get('handle'):
+            e['handle'] = ent['handle']
+        if ent.get('publicIds'):
+            e['publicIds'] = ent['publicIds']
+        out.append(e)
+    return out
+
+
+def _rdap_events(events: list) -> dict:
+    """eventAction → eventDate."""
+    result = {}
+    for ev in (events or []):
+        action = ev.get('eventAction', '')
+        date   = ev.get('eventDate', '')
+        if action and date:
+            result[action] = date
+    return result
+
+
+def _rdap_notices(notices: list) -> list[str]:
+    return [n.get('title', '') for n in (notices or []) if n.get('title')]
+
+
+def parse_rdap_domain(raw: dict, domain: str) -> dict:
+    if 'error' in raw:
+        return raw
+    events = _rdap_events(raw.get('events', []))
+    return {
+        "type":         "domain",
+        "domain":       raw.get('ldhName', domain),
+        "handle":       raw.get('handle'),
+        "status":       raw.get('status', []),
+        "created":      events.get('registration'),
+        "updated":      events.get('last changed'),
+        "expires":      events.get('expiration'),
+        "transferred":  events.get('last update of RDAP database'),
+        "name_servers": [
+            ns.get('ldhName', '').lower()
+            for ns in raw.get('nameservers', [])
+        ],
+        "dnssec_delegation": raw.get('secureDNS', {}).get('delegationSigned'),
+        "dnssec_zone":       raw.get('secureDNS', {}).get('zoneSigned'),
+        "entities":     _rdap_entities(raw.get('entities', [])),
+        "notices":      _rdap_notices(raw.get('notices', [])),
+        "rdap_conformance": raw.get('rdapConformance', []),
+        "links":        [l.get('href') for l in raw.get('links', []) if l.get('rel') == 'related'],
+        "raw":          raw,
+    }
+
+
+def parse_rdap_ip(raw: dict, ip: str) -> dict:
+    if 'error' in raw:
+        return raw
+    events = _rdap_events(raw.get('events', []))
+    return {
+        "type":        "ip",
+        "ip":          ip,
+        "handle":      raw.get('handle'),
+        "name":        raw.get('name'),
+        "type_ip":     raw.get('type'),         # ALLOCATED, ASSIGNED тощо
+        "start_addr":  raw.get('startAddress'),
+        "end_addr":    raw.get('endAddress'),
+        "cidr":        [c.get('v4prefix') or c.get('v6prefix') for c in raw.get('cidr0_cidrs', [])],
+        "country":     raw.get('country'),
+        "parent_handle": raw.get('parentHandle'),
+        "status":      raw.get('status', []),
+        "created":     events.get('registration'),
+        "updated":     events.get('last changed'),
+        "entities":    _rdap_entities(raw.get('entities', [])),
+        "notices":     _rdap_notices(raw.get('notices', [])),
+        "rdap_conformance": raw.get('rdapConformance', []),
+        "raw":         raw,
+    }
+
+
+def parse_rdap_asn(raw: dict, asn: int) -> dict:
+    if 'error' in raw:
+        return raw
+    events = _rdap_events(raw.get('events', []))
+    return {
+        "type":        "asn",
+        "asn":         asn,
+        "handle":      raw.get('handle'),
+        "name":        raw.get('name'),
+        "start_asn":   raw.get('startAutnum'),
+        "end_asn":     raw.get('endAutnum'),
+        "status":      raw.get('status', []),
+        "created":     events.get('registration'),
+        "updated":     events.get('last changed'),
+        "entities":    _rdap_entities(raw.get('entities', [])),
+        "notices":     _rdap_notices(raw.get('notices', [])),
+        "rdap_conformance": raw.get('rdapConformance', []),
+        "raw":         raw,
+    }
+
+
+# ── RDAP endpoint ─────────────────────────────────────────────────────────────
+
+@app.route("/api/rdap")
+@rate_limited('rdap')
+def api_rdap():
+    """
+    GET /api/rdap?q=<domain|ip|asn>
+    Приклади:
+      /api/rdap?q=example.com
+      /api/rdap?q=8.8.8.8
+      /api/rdap?q=AS15169
+      /api/rdap?q=15169        ← теж ASN
+    """
+    q = sanitize_host(request.args.get("q", ""))
+    if not q:
+        return jsonify({"error": "Параметр q не вказано"}), 400
+
+    # ── ASN ──
+    asn_match = re.fullmatch(r'(?:AS)?(\d+)', q, re.IGNORECASE)
+    if asn_match and not re.search(r'\.', q):
+        asn = int(asn_match.group(1))
+        rdap_url = _find_rdap_server_asn(asn)
+        raw = _fetch_rdap(rdap_url)
+        return jsonify(parse_rdap_asn(raw, asn))
+
+    # ── IP ──
+    try:
+        ipaddress.ip_address(q)
+        if is_blocked_ip(q):
+            return jsonify({"error": "Приватні та зарезервовані адреси заборонені"}), 403
+        rdap_url = _find_rdap_server_ip(q)
+        raw = _fetch_rdap(rdap_url)
+        return jsonify(parse_rdap_ip(raw, q))
+    except ValueError:
+        pass
+
+    # ── Domain ──
+    if not _HOST_RE.match(q):
+        return jsonify({"error": "Недопустимі символи в імені"}), 400
+    rdap_url = _find_rdap_server_domain(q)
+    raw = _fetch_rdap(rdap_url)
+    return jsonify(parse_rdap_domain(raw, q))
+
+
+# ── RDAP пошук (search endpoints — підтримуються не всіма серверами) ──────────
+
+@app.route("/api/rdap/search")
+@rate_limited('rdap')
+def api_rdap_search():
+    """
+    GET /api/rdap/search?type=domain&name=example*
+    GET /api/rdap/search?type=entity&fn=John*
+    GET /api/rdap/search?type=nameserver&name=ns1*
+    """
+    search_type = request.args.get("type", "domain").lower()
+    name        = request.args.get("name", "").strip()
+    fn          = request.args.get("fn",   "").strip()   # для entity
+
+    if search_type == "domain":
+        if not name:
+            return jsonify({"error": "Параметр name не вказано"}), 400
+        # Беремо сервер на основі TLD (якщо є)
+        tld = name.rstrip('*').rsplit('.', 1)[-1].lower() if '.' in name else ""
+        base = "https://rdap.org"
+        if tld:
+            bootstrap = _load_bootstrap(RDAP_DOMAIN_BOOTSTRAP)
+            if bootstrap:
+                for entry in bootstrap.get("services", []):
+                    if tld in [t.lower() for t in entry[0]]:
+                        base = entry[1][0].rstrip('/')
+                        break
+        url = f"{base}/domains?name={name}"
+        raw = _fetch_rdap(url)
+        return jsonify({"type": "domain_search", "query": name, "raw": raw})
+
+    elif search_type == "entity":
+        query = fn or name
+        if not query:
+            return jsonify({"error": "Вкажіть параметр fn або name"}), 400
+        url = f"https://rdap.org/entities?fn={query}"
+        raw = _fetch_rdap(url)
+        return jsonify({"type": "entity_search", "query": query, "raw": raw})
+
+    elif search_type == "nameserver":
+        if not name:
+            return jsonify({"error": "Параметр name не вказано"}), 400
+        url = f"https://rdap.org/nameservers?name={name}"
+        raw = _fetch_rdap(url)
+        return jsonify({"type": "nameserver_search", "query": name, "raw": raw})
+
+    else:
+        return jsonify({"error": "type має бути: domain, entity, nameserver"}), 400
+    
 @app.route("/api-docs")
 def api_docs():
     return render_template("api.html")
