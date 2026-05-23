@@ -6,7 +6,7 @@ import { doLookup } from './ip.js';
 import { doDnsLookup } from './dns.js';
 import { doSslLookup } from './ssl.js';
 import { doPing, doTcpCheck, PORT_PRESETS } from './net.js';
-import { runWhois, selectWhoisMode } from './whois.js';
+import { runWhois, selectWhoisMode, whoisMode } from './whois.js';
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
 const ipInput = document.getElementById('ipInput');
@@ -24,6 +24,15 @@ window.selectWhoisMode = selectWhoisMode;
 function dispatch() {
   const q = ipInput.value.trim();
   if (!q) return;
+
+  const extra = currentTab === 'dns' ? `&type=${currentDnsType}`
+    : currentTab === 'ssl' ? `&port=${document.getElementById('ssl-port').value.trim() || '443'}`
+      : currentTab === 'net' ? `&mode=${currentNetMode}`
+        : currentTab === 'whois' ? `&mode=${whoisMode}`
+          : '';
+
+  history.pushState(null, '', `?tab=${currentTab}&q=${encodeURIComponent(q)}${extra}`);
+
   switch (currentTab) {
     case 'dns': doDnsLookup(q, currentDnsType, resultEl); break;
     case 'ssl': doSslLookup(q, document.getElementById('ssl-port').value.trim() || '443', resultEl); break;
@@ -133,3 +142,27 @@ fetchWithRetry('/api/myip')
     }, 100);
   })
   .catch(() => setMyIp('myipV6', null));
+
+
+const params = new URLSearchParams(location.search);
+const tab = params.get('tab');
+const q = params.get('q');
+
+if (tab) switchTab(tab);
+
+if (tab === 'dns' && params.get('type')) {
+  selectType(params.get('type'));
+}
+if (tab === 'ssl' && params.get('port')) {
+  document.getElementById('ssl-port').value = params.get('port');
+}
+if (tab === 'net' && params.get('mode')) {
+  selectNetMode(params.get('mode'));
+}
+if (tab === 'whois' && params.get('mode')) {
+  selectWhoisMode(params.get('mode'));
+}
+if (q) {
+  ipInput.value = q;
+  dispatch();
+}

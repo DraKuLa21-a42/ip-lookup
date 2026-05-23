@@ -1,8 +1,8 @@
 // ── whois.js  (ES module, підключи як: import './whois.js' у main.js) ────────
 
 // ─── стан ────────────────────────────────────────────────────────────────────
-let whoisMode = 'whois'; // 'whois' | 'rdap'
-
+// let whoisMode = 'whois'; // 'whois' | 'rdap'
+export let whoisMode = 'whois';
 export function selectWhoisMode(mode) {
     whoisMode = mode;
     document.getElementById('wm-whois').classList.toggle('active', mode === 'whois');
