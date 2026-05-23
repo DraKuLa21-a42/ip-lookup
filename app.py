@@ -860,7 +860,6 @@ def do_whois_domain(domain: str) -> dict:
         "admin_email":        getattr(w, 'admin_email',  None),
         "tech_email":         getattr(w, 'tech_email',   None),
         # Сирий текст (завжди корисний)
-        #"raw": w.text if hasattr(w, 'text') else None,
         "raw": raw,
         
     }
