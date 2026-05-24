@@ -127,7 +127,6 @@
       margin-top: 14px;
     }
 
-    /* Back link — simple text style */
     .sidebar-back {
       display: inline-flex;
       align-items: center;
@@ -142,7 +141,6 @@
       color: var(--text);
     }
 
-    /* GitHub button — polished pill */
     .github-btn {
       display: inline-flex;
       align-items: center;
@@ -541,6 +539,10 @@
       color: var(--accent);
     }
 
+    .hl-null {
+      color: var(--muted);
+    }
+
     .hl-comment {
       color: var(--muted);
       font-style: italic;
@@ -684,6 +686,13 @@
       margin: 3rem 0;
     }
 
+    /* Teal badge variant for RDAP */
+    .badge-teal {
+      background: var(--teal-dim);
+      color: var(--teal);
+      border: 1px solid rgba(45, 212, 191, 0.2);
+    }
+
     @media (max-width: 768px) {
       .sidebar {
         display: none;
@@ -718,9 +727,7 @@
           </svg>
           ip//lookup
         </a>
-
         <a href="https://github.com/DraKuLa21-a42/ip-lookup" target="_blank" rel="noopener" class="github-btn">
-          <!-- GitHub mark SVG -->
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
             <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
               0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52
@@ -774,6 +781,13 @@
       <a href="#ep-tcpcheck" class="nav-item">
         <span class="nav-dot" style="background:#4ade80"></span> GET /api/tcpcheck
       </a>
+      <a href="#ep-whois" class="nav-item">
+        <span class="nav-dot" style="background:#4ade80"></span> GET /api/whois
+      </a>
+      <a href="#ep-rdap" class="nav-item">
+        <span class="nav-dot" style="background:#4ade80"></span> GET /api/rdap
+      </a>
+
     </div>
   </nav>
 
@@ -789,7 +803,7 @@
       </div>
       <h1>Network Tools<br><span>API Reference</span></h1>
       <p>Набір інструментів для аналізу мережевих адрес: геолокація IP, DNS-лукап, перевірка SSL-сертифікатів, ICMP
-        ping, TCP-перевірка портів та DNSSEC аналіз.</p>
+        ping, TCP-перевірка портів, DNSSEC аналіз, WHOIS та RDAP.</p>
       <div class="base-url-block">
         <span class="label">Base URL</span>
         <span class="url">https://your-domain.com</span>
@@ -820,6 +834,16 @@
         <div class="rate-card">
           <div class="endpoint-name">/api/tcpcheck</div>
           <div class="rate-value">10</div>
+          <div class="rate-unit">запитів / 60 сек</div>
+        </div>
+        <div class="rate-card">
+          <div class="endpoint-name">/api/whois</div>
+          <div class="rate-value">30</div>
+          <div class="rate-unit">запитів / 60 сек</div>
+        </div>
+        <div class="rate-card">
+          <div class="endpoint-name">/api/rdap</div>
+          <div class="rate-value">30</div>
           <div class="rate-unit">запитів / 60 сек</div>
         </div>
         <div class="rate-card">
@@ -1102,15 +1126,16 @@
               <td><span class="param-name">type</span><span class="param-optional">optional</span></td>
               <td><span class="param-type">string</span></td>
               <td class="param-desc">Тип DNS-запису. Якщо не вказано — повертаються всі знайдені типи. Можливі значення:
-                <code style="font-family:var(--mono);font-size:12px">A</code>, <code
-                  style="font-family:var(--mono);font-size:12px">AAAA</code>, <code
-                  style="font-family:var(--mono);font-size:12px">MX</code>, <code
-                  style="font-family:var(--mono);font-size:12px">TXT</code>, <code
-                  style="font-family:var(--mono);font-size:12px">NS</code>, <code
-                  style="font-family:var(--mono);font-size:12px">SOA</code>, <code
-                  style="font-family:var(--mono);font-size:12px">SRV</code>, <code
-                  style="font-family:var(--mono);font-size:12px">CAA</code>, <code
-                  style="font-family:var(--mono);font-size:12px">DNSSEC</code> та інші.</td>
+                <code style="font-family:var(--mono);font-size:12px">A</code>,
+                <code style="font-family:var(--mono);font-size:12px">AAAA</code>,
+                <code style="font-family:var(--mono);font-size:12px">MX</code>,
+                <code style="font-family:var(--mono);font-size:12px">TXT</code>,
+                <code style="font-family:var(--mono);font-size:12px">NS</code>,
+                <code style="font-family:var(--mono);font-size:12px">SOA</code>,
+                <code style="font-family:var(--mono);font-size:12px">SRV</code>,
+                <code style="font-family:var(--mono);font-size:12px">CAA</code>,
+                <code style="font-family:var(--mono);font-size:12px">DNSSEC</code> та інші.
+              </td>
             </tr>
           </tbody>
         </table>
@@ -1178,7 +1203,6 @@
           <span>Отримання сертифікату і перевірка ланцюжка довіри виконуються незалежно — навіть прострочені або
             self-signed сертифікати повністю аналізуються. Перевірка wildcard SAN відповідає RFC 6125.</span>
         </div>
-
         <div class="params-title">Параметри</div>
         <table class="params-table">
           <thead>
@@ -1202,7 +1226,6 @@
             </tr>
           </tbody>
         </table>
-
         <div class="params-title" style="margin-top:1rem">Поля відповіді</div>
         <table class="params-table">
           <thead>
@@ -1277,21 +1300,18 @@
             </tr>
           </tbody>
         </table>
-
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab(this,'ssl-req')">Запит</button>
           <button class="tab-btn" onclick="switchTab(this,'ssl-resp-ok')">Валідний</button>
           <button class="tab-btn" onclick="switchTab(this,'ssl-resp-bad')">Невалідний</button>
           <button class="tab-btn" onclick="switchTab(this,'ssl-err')">Помилки</button>
         </div>
-
         <div class="tab-content active" id="ssl-req">
           <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="hl-url">GET /api/ssl?host=github.com</span>
 
 <span class="hl-comment"># Нестандартний порт</span>
 <span class="hl-url">GET /api/ssl?host=example.com&port=8443</span></pre>
         </div>
-
         <div class="tab-content" id="ssl-resp-ok">
           <span class="response-badge resp-200">200 OK</span>
           <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>{
@@ -1299,7 +1319,7 @@
   <span class="hl-key">"port"</span>: <span class="hl-num">443</span>,
   <span class="hl-key">"valid"</span>: <span class="hl-bool">true</span>,
   <span class="hl-key">"trusted"</span>: <span class="hl-bool">true</span>,
-  <span class="hl-key">"trust_error"</span>: <span class="hl-bool">null</span>,
+  <span class="hl-key">"trust_error"</span>: <span class="hl-null">null</span>,
   <span class="hl-key">"name_match"</span>: <span class="hl-bool">true</span>,
   <span class="hl-key">"expired"</span>: <span class="hl-bool">false</span>,
   <span class="hl-key">"days_left"</span>: <span class="hl-num">187</span>,
@@ -1325,7 +1345,6 @@
   ]
 }</pre>
         </div>
-
         <div class="tab-content" id="ssl-resp-bad">
           <span class="response-badge resp-200">200 OK</span>
           <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="hl-comment">// Self-signed або прострочений — поля все одно повертаються</span>
@@ -1344,7 +1363,6 @@
   <span class="hl-key">"..."</span>: <span class="hl-str">"..."</span>
 }</pre>
         </div>
-
         <div class="tab-content" id="ssl-err">
           <span class="response-badge resp-400">400 Bad Request</span>
           <pre><span class="hl-comment">// Відсутній host</span>
@@ -1426,7 +1444,7 @@
   <span class="hl-key">"host"</span>: <span class="hl-str">"203.0.113.1"</span>,
   <span class="hl-key">"success"</span>: <span class="hl-bool">false</span>,
   <span class="hl-key">"packet_loss"</span>: <span class="hl-num">100</span>,
-  <span class="hl-key">"rtt"</span>: <span class="hl-bool">null</span>,
+  <span class="hl-key">"rtt"</span>: <span class="hl-null">null</span>,
   <span class="hl-key">"output"</span>: <span class="hl-str">"..."</span>
 }</pre>
         </div>
@@ -1523,6 +1541,598 @@
       </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- /api/whois -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div class="endpoint-card" id="ep-whois">
+      <div class="endpoint-header" onclick="toggleCard(this)">
+        <span class="method-badge method-GET">GET</span>
+        <div class="endpoint-info">
+          <div class="endpoint-path">/api/whois<span class="param">?q=</span>{ip_or_domain}</div>
+          <div class="endpoint-summary">WHOIS-інформація для домену або IP-адреси</div>
+        </div>
+        <span class="toggle-icon">▾</span>
+      </div>
+      <div class="endpoint-body">
+        <div class="info-box">
+          <span class="icon">ℹ</span>
+          <span>Endpoint автоматично визначає тип запиту — домен або IP. Для доменів використовується
+            <code style="font-family:var(--mono);font-size:12px">python-whois</code>,
+            для IP — системна команда <code style="font-family:var(--mono);font-size:12px">whois</code>
+            із парсингом ключових полів. Контактні дані можуть бути приховані через GDPR/редакцію реєстратора.</span>
+        </div>
+
+        <div class="params-title">Параметри</div>
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Параметр</th>
+              <th>Тип</th>
+              <th>Опис</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="param-name">q</span><span class="param-required">required</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">Доменне ім'я або IP-адреса. Приватні IP заблоковані.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="params-title" style="margin-top:1rem">Поля відповіді — домен</div>
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Поле</th>
+              <th>Тип</th>
+              <th>Опис</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="param-name">type</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">Завжди <code style="font-family:var(--mono);font-size:12px">"domain"</code>.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">domain</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">Нормалізована назва домену.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">registrar</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Назва реєстратора.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">registrar_url</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">URL реєстратора.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">whois_server</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">WHOIS-сервер реєстратора.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">status</span></td>
+              <td><span class="param-type">string | string[]</span></td>
+              <td class="param-desc">Статуси EPP домену (наприклад, <code
+                  style="font-family:var(--mono);font-size:12px">clientTransferProhibited</code>).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">name_servers</span></td>
+              <td><span class="param-type">string[]</span></td>
+              <td class="param-desc">Список NS-серверів (lower-case, дедупліковані).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">created / updated / expires</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Дати реєстрації, оновлення та закінчення у форматі ISO 8601.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">dnssec</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Статус DNSSEC з WHOIS (наприклад, <code
+                  style="font-family:var(--mono);font-size:12px">unsigned</code>).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">registrant_name / registrant_org</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Дані власника (можуть бути приховані GDPR).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">registrant_country / registrant_city</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Географія власника.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">registrant_email / admin_email / tech_email</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Контактні email (часто приховані).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">raw</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">Повний сирий текст WHOIS-відповіді.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="params-title" style="margin-top:1rem">Поля відповіді — IP</div>
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Поле</th>
+              <th>Тип</th>
+              <th>Опис</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="param-name">type</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">Завжди <code style="font-family:var(--mono);font-size:12px">"ip"</code>.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">ip</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">Запитана IP-адреса.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">netname</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Назва мережі (NetName / netname).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">netrange</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Діапазон адрес мережі (NetRange / inetnum).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">cidr</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">CIDR-нотація блоку (CIDR / route).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">country</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Код країни.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">org</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Організація-власник блоку.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">abuse_email</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Email для репортів зловживань.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">rir</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Регіональний реєстр: <code
+                  style="font-family:var(--mono);font-size:12px">ARIN</code>, <code
+                  style="font-family:var(--mono);font-size:12px">RIPE</code>, <code
+                  style="font-family:var(--mono);font-size:12px">APNIC</code>, <code
+                  style="font-family:var(--mono);font-size:12px">LACNIC</code>, <code
+                  style="font-family:var(--mono);font-size:12px">AFRINIC</code>.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">raw</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">Повний сирий текст WHOIS-відповіді.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab(this,'whois-req')">Запити</button>
+          <button class="tab-btn" onclick="switchTab(this,'whois-resp-domain')">Домен</button>
+          <button class="tab-btn" onclick="switchTab(this,'whois-resp-ip')">IP</button>
+          <button class="tab-btn" onclick="switchTab(this,'whois-err')">Помилки</button>
+        </div>
+
+        <div class="tab-content active" id="whois-req">
+          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="hl-comment"># WHOIS для домену</span>
+<span class="hl-url">GET /api/whois?q=github.com</span>
+
+<span class="hl-comment"># WHOIS для IP</span>
+<span class="hl-url">GET /api/whois?q=8.8.8.8</span></pre>
+        </div>
+
+        <div class="tab-content" id="whois-resp-domain">
+          <span class="response-badge resp-200">200 OK</span>
+          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>{
+  <span class="hl-key">"type"</span>: <span class="hl-str">"domain"</span>,
+  <span class="hl-key">"domain"</span>: <span class="hl-str">"github.com"</span>,
+  <span class="hl-key">"registrar"</span>: <span class="hl-str">"MarkMonitor Inc."</span>,
+  <span class="hl-key">"registrar_url"</span>: <span class="hl-str">"http://www.markmonitor.com"</span>,
+  <span class="hl-key">"whois_server"</span>: <span class="hl-str">"whois.markmonitor.com"</span>,
+  <span class="hl-key">"status"</span>: <span class="hl-str">"clientTransferProhibited"</span>,
+  <span class="hl-key">"name_servers"</span>: [
+    <span class="hl-str">"dns1.p08.nsone.net"</span>,
+    <span class="hl-str">"dns2.p08.nsone.net"</span>
+  ],
+  <span class="hl-key">"created"</span>: <span class="hl-str">"2007-10-09T18:20:50"</span>,
+  <span class="hl-key">"updated"</span>: <span class="hl-str">"2024-09-07T09:10:44"</span>,
+  <span class="hl-key">"expires"</span>: <span class="hl-str">"2026-10-09T18:20:50"</span>,
+  <span class="hl-key">"dnssec"</span>: <span class="hl-str">"unsigned"</span>,
+  <span class="hl-key">"registrant_name"</span>: <span class="hl-null">null</span>,
+  <span class="hl-key">"registrant_org"</span>: <span class="hl-str">"GitHub, Inc."</span>,
+  <span class="hl-key">"registrant_country"</span>: <span class="hl-str">"US"</span>,
+  <span class="hl-key">"registrant_city"</span>: <span class="hl-null">null</span>,
+  <span class="hl-key">"registrant_email"</span>: <span class="hl-null">null</span>,
+  <span class="hl-key">"admin_email"</span>: <span class="hl-null">null</span>,
+  <span class="hl-key">"tech_email"</span>: <span class="hl-null">null</span>,
+  <span class="hl-key">"raw"</span>: <span class="hl-str">"Domain Name: GITHUB.COM\nRegistry Domain ID: ..."</span>
+}</pre>
+        </div>
+
+        <div class="tab-content" id="whois-resp-ip">
+          <span class="response-badge resp-200">200 OK</span>
+          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>{
+  <span class="hl-key">"type"</span>: <span class="hl-str">"ip"</span>,
+  <span class="hl-key">"ip"</span>: <span class="hl-str">"8.8.8.8"</span>,
+  <span class="hl-key">"netname"</span>: <span class="hl-str">"GOGL"</span>,
+  <span class="hl-key">"netrange"</span>: <span class="hl-str">"8.8.8.0 - 8.8.8.255"</span>,
+  <span class="hl-key">"cidr"</span>: <span class="hl-str">"8.8.8.0/24"</span>,
+  <span class="hl-key">"country"</span>: <span class="hl-str">"US"</span>,
+  <span class="hl-key">"city"</span>: <span class="hl-null">null</span>,
+  <span class="hl-key">"org"</span>: <span class="hl-str">"Google LLC"</span>,
+  <span class="hl-key">"descr"</span>: <span class="hl-null">null</span>,
+  <span class="hl-key">"abuse_email"</span>: <span class="hl-str">"network-abuse@google.com"</span>,
+  <span class="hl-key">"rir"</span>: <span class="hl-str">"ARIN"</span>,
+  <span class="hl-key">"raw"</span>: <span class="hl-str">"#\n# ARIN WHOIS data ..."</span>
+}</pre>
+        </div>
+
+        <div class="tab-content" id="whois-err">
+          <span class="response-badge resp-400">400 Bad Request</span>
+          <pre><span class="hl-comment">// Відсутній параметр</span>
+{ <span class="hl-key">"error"</span>: <span class="hl-str">"Параметр q не вказано"</span> }
+
+<span class="hl-comment">// Недопустимі символи в домені</span>
+{ <span class="hl-key">"error"</span>: <span class="hl-str">"Недопустимі символи в імені домену"</span> }
+
+<span class="hl-comment">// Домен не знайдено</span>
+{ <span class="hl-key">"error"</span>: <span class="hl-str">"Не вдалось отримати WHOIS-дані (домен не зареєстрований або недоступний)"</span> }</pre>
+          <span class="response-badge resp-403">403 Forbidden</span>
+          <pre><span class="hl-comment">// Приватна IP-адреса</span>
+{ <span class="hl-key">"error"</span>: <span class="hl-str">"Приватні та зарезервовані адреси заборонені"</span> }</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- /api/rdap -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div class="endpoint-card" id="ep-rdap">
+      <div class="endpoint-header" onclick="toggleCard(this)">
+        <span class="method-badge method-GET">GET</span>
+        <div class="endpoint-info">
+          <div class="endpoint-path">/api/rdap<span class="param">?q=</span>{domain_ip_or_asn}</div>
+          <div class="endpoint-summary">RDAP (RFC 9083) — структурований аналог WHOIS для домену, IP або ASN</div>
+        </div>
+        <span class="toggle-icon">▾</span>
+      </div>
+      <div class="endpoint-body">
+        <div class="info-box">
+          <span class="icon">ℹ</span>
+          <span>RDAP — сучасна заміна WHOIS із JSON-відповіддями та стандартизованою структурою (RFC 9083 / RFC 9224).
+            Сервер автоматично обирає потрібний RDAP-endpoint через
+            <strong>IANA bootstrap</strong> (<code
+              style="font-family:var(--mono);font-size:12px">data.iana.org/rdap</code>)
+            з кешуванням на 1 годину. Підтримує домени, IPv4/IPv6 та ASN (<code
+              style="font-family:var(--mono);font-size:12px">AS15169</code> або просто <code
+              style="font-family:var(--mono);font-size:12px">15169</code>).</span>
+        </div>
+
+        <div class="params-title">Параметри</div>
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Параметр</th>
+              <th>Тип</th>
+              <th>Опис</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="param-name">q</span><span class="param-required">required</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">
+                Доменне ім'я, IP-адреса або ASN.<br>
+                ASN можна передати як <code style="font-family:var(--mono);font-size:12px">AS15169</code> або <code
+                  style="font-family:var(--mono);font-size:12px">15169</code>.<br>
+                Приватні IP заблоковані.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="params-title" style="margin-top:1rem">Поля відповіді — домен</div>
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Поле</th>
+              <th>Тип</th>
+              <th>Опис</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="param-name">type</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc"><code style="font-family:var(--mono);font-size:12px">"domain"</code></td>
+            </tr>
+            <tr>
+              <td><span class="param-name">domain</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">LDH-назва домену (ldhName).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">handle</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Унікальний ідентифікатор об'єкта в реєстрі.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">status</span></td>
+              <td><span class="param-type">string[]</span></td>
+              <td class="param-desc">Масив статусів EPP.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">created / updated / expires</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Дати з events (ISO 8601).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">name_servers</span></td>
+              <td><span class="param-type">string[]</span></td>
+              <td class="param-desc">Авторитативні NS (lower-case).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">dnssec_delegation</span></td>
+              <td><span class="param-type">boolean | null</span></td>
+              <td class="param-desc"><code style="font-family:var(--mono);font-size:12px">true</code> якщо делегування
+                підписане (secureDNS.delegationSigned).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">dnssec_zone</span></td>
+              <td><span class="param-type">boolean | null</span></td>
+              <td class="param-desc"><code style="font-family:var(--mono);font-size:12px">true</code> якщо зона
+                підписана (secureDNS.zoneSigned).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">entities</span></td>
+              <td><span class="param-type">object[]</span></td>
+              <td class="param-desc">Контакти: registrant, registrar, abuse тощо. Кожен об'єкт містить <code
+                  style="font-family:var(--mono);font-size:12px">roles</code>, <code
+                  style="font-family:var(--mono);font-size:12px">name</code>, <code
+                  style="font-family:var(--mono);font-size:12px">org</code>, <code
+                  style="font-family:var(--mono);font-size:12px">emails</code>, <code
+                  style="font-family:var(--mono);font-size:12px">address</code>.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">notices</span></td>
+              <td><span class="param-type">string[]</span></td>
+              <td class="param-desc">Назви правових повідомлень від реєстру.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">rdap_conformance</span></td>
+              <td><span class="param-type">string[]</span></td>
+              <td class="param-desc">Профілі RDAP, яким відповідає відповідь.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">raw</span></td>
+              <td><span class="param-type">object</span></td>
+              <td class="param-desc">Повний розпарсений JSON від RDAP-сервера.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="params-title" style="margin-top:1rem">Поля відповіді — IP</div>
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Поле</th>
+              <th>Тип</th>
+              <th>Опис</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="param-name">type</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc"><code style="font-family:var(--mono);font-size:12px">"ip"</code></td>
+            </tr>
+            <tr>
+              <td><span class="param-name">handle / name</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Ідентифікатор та назва мережевого блоку.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">type_ip</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Тип алокації: <code
+                  style="font-family:var(--mono);font-size:12px">ALLOCATED</code>, <code
+                  style="font-family:var(--mono);font-size:12px">ASSIGNED</code> тощо.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">start_addr / end_addr</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc">Початкова та кінцева адреса блоку.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">cidr</span></td>
+              <td><span class="param-type">string[]</span></td>
+              <td class="param-desc">CIDR-нотація (з cidr0_cidrs).</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">country</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Код країни реєстрації блоку.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">parent_handle</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Handle батьківського блоку.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">entities</span></td>
+              <td><span class="param-type">object[]</span></td>
+              <td class="param-desc">Контакти (registrant, abuse тощо).</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="params-title" style="margin-top:1rem">Поля відповіді — ASN</div>
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Поле</th>
+              <th>Тип</th>
+              <th>Опис</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="param-name">type</span></td>
+              <td><span class="param-type">string</span></td>
+              <td class="param-desc"><code style="font-family:var(--mono);font-size:12px">"asn"</code></td>
+            </tr>
+            <tr>
+              <td><span class="param-name">asn</span></td>
+              <td><span class="param-type">integer</span></td>
+              <td class="param-desc">Номер автономної системи.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">handle / name</span></td>
+              <td><span class="param-type">string | null</span></td>
+              <td class="param-desc">Ідентифікатор та назва AS.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">start_asn / end_asn</span></td>
+              <td><span class="param-type">integer | null</span></td>
+              <td class="param-desc">Діапазон ASN блоку.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">entities</span></td>
+              <td><span class="param-type">object[]</span></td>
+              <td class="param-desc">Контакти організації.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab(this,'rdap-req')">Запити</button>
+          <button class="tab-btn" onclick="switchTab(this,'rdap-resp-domain')">Домен</button>
+          <button class="tab-btn" onclick="switchTab(this,'rdap-resp-ip')">IP</button>
+          <button class="tab-btn" onclick="switchTab(this,'rdap-resp-asn')">ASN</button>
+          <button class="tab-btn" onclick="switchTab(this,'rdap-err')">Помилки</button>
+        </div>
+
+        <div class="tab-content active" id="rdap-req">
+          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="hl-comment"># Домен</span>
+<span class="hl-url">GET /api/rdap?q=example.com</span>
+
+<span class="hl-comment"># IP-адреса</span>
+<span class="hl-url">GET /api/rdap?q=8.8.8.8</span>
+
+<span class="hl-comment"># ASN (обидва формати)</span>
+<span class="hl-url">GET /api/rdap?q=AS15169</span>
+<span class="hl-url">GET /api/rdap?q=15169</span></pre>
+        </div>
+
+        <div class="tab-content" id="rdap-resp-domain">
+          <span class="response-badge resp-200">200 OK</span>
+          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>{
+  <span class="hl-key">"type"</span>: <span class="hl-str">"domain"</span>,
+  <span class="hl-key">"domain"</span>: <span class="hl-str">"github.com"</span>,
+  <span class="hl-key">"handle"</span>: <span class="hl-str">"2374917_DOMAIN_COM-VRSN"</span>,
+  <span class="hl-key">"status"</span>: [<span class="hl-str">"client transfer prohibited"</span>, <span class="hl-str">"client update prohibited"</span>],
+  <span class="hl-key">"created"</span>: <span class="hl-str">"2007-10-09T18:20:50Z"</span>,
+  <span class="hl-key">"updated"</span>: <span class="hl-str">"2024-09-07T09:10:44Z"</span>,
+  <span class="hl-key">"expires"</span>: <span class="hl-str">"2026-10-09T18:20:50Z"</span>,
+  <span class="hl-key">"transferred"</span>: <span class="hl-null">null</span>,
+  <span class="hl-key">"name_servers"</span>: [<span class="hl-str">"dns1.p08.nsone.net"</span>, <span class="hl-str">"dns2.p08.nsone.net"</span>],
+  <span class="hl-key">"dnssec_delegation"</span>: <span class="hl-bool">false</span>,
+  <span class="hl-key">"dnssec_zone"</span>: <span class="hl-bool">false</span>,
+  <span class="hl-key">"entities"</span>: [
+    {
+      <span class="hl-key">"roles"</span>: [<span class="hl-str">"registrar"</span>],
+      <span class="hl-key">"name"</span>: <span class="hl-str">"MarkMonitor Inc."</span>,
+      <span class="hl-key">"handle"</span>: <span class="hl-str">"292"</span>,
+      <span class="hl-key">"entities"</span>: [
+        { <span class="hl-key">"roles"</span>: [<span class="hl-str">"abuse"</span>], <span class="hl-key">"emails"</span>: [<span class="hl-str">"abusecomplaints@markmonitor.com"</span>] }
+      ]
+    }
+  ],
+  <span class="hl-key">"notices"</span>: [<span class="hl-str">"Terms of Use"</span>, <span class="hl-str">"Status Codes"</span>],
+  <span class="hl-key">"rdap_conformance"</span>: [<span class="hl-str">"rdap_level_0"</span>, <span class="hl-str">"icann_rdap_response_profile_0"</span>],
+  <span class="hl-key">"links"</span>: [],
+  <span class="hl-key">"raw"</span>: { <span class="hl-key">"..."</span>: <span class="hl-str">"повний JSON від RDAP-сервера"</span> }
+}</pre>
+        </div>
+
+        <div class="tab-content" id="rdap-resp-ip">
+          <span class="response-badge resp-200">200 OK</span>
+          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>{
+  <span class="hl-key">"type"</span>: <span class="hl-str">"ip"</span>,
+  <span class="hl-key">"ip"</span>: <span class="hl-str">"8.8.8.8"</span>,
+  <span class="hl-key">"handle"</span>: <span class="hl-str">"NET-8-8-8-0-1"</span>,
+  <span class="hl-key">"name"</span>: <span class="hl-str">"GOGL"</span>,
+  <span class="hl-key">"type_ip"</span>: <span class="hl-str">"DIRECT ALLOCATION"</span>,
+  <span class="hl-key">"start_addr"</span>: <span class="hl-str">"8.8.8.0"</span>,
+  <span class="hl-key">"end_addr"</span>: <span class="hl-str">"8.8.8.255"</span>,
+  <span class="hl-key">"cidr"</span>: [<span class="hl-str">"8.8.8.0/24"</span>],
+  <span class="hl-key">"country"</span>: <span class="hl-str">"US"</span>,
+  <span class="hl-key">"parent_handle"</span>: <span class="hl-str">"NET-8-0-0-0-1"</span>,
+  <span class="hl-key">"status"</span>: [<span class="hl-str">"active"</span>],
+  <span class="hl-key">"created"</span>: <span class="hl-str">"2014-03-14T00:00:00Z"</span>,
+  <span class="hl-key">"updated"</span>: <span class="hl-str">"2014-03-14T00:00:00Z"</span>,
+  <span class="hl-key">"entities"</span>: [
+    { <span class="hl-key">"roles"</span>: [<span class="hl-str">"registrant"</span>], <span class="hl-key">"name"</span>: <span class="hl-str">"Google LLC"</span>, <span class="hl-key">"handle"</span>: <span class="hl-str">"GOGL"</span> },
+    { <span class="hl-key">"roles"</span>: [<span class="hl-str">"abuse"</span>], <span class="hl-key">"emails"</span>: [<span class="hl-str">"network-abuse@google.com"</span>] }
+  ],
+  <span class="hl-key">"raw"</span>: { <span class="hl-key">"..."</span>: <span class="hl-str">"..."</span> }
+}</pre>
+        </div>
+
+        <div class="tab-content" id="rdap-resp-asn">
+          <span class="response-badge resp-200">200 OK</span>
+          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>{
+  <span class="hl-key">"type"</span>: <span class="hl-str">"asn"</span>,
+  <span class="hl-key">"asn"</span>: <span class="hl-num">15169</span>,
+  <span class="hl-key">"handle"</span>: <span class="hl-str">"AS15169"</span>,
+  <span class="hl-key">"name"</span>: <span class="hl-str">"GOOGLE"</span>,
+  <span class="hl-key">"start_asn"</span>: <span class="hl-num">15169</span>,
+  <span class="hl-key">"end_asn"</span>: <span class="hl-num">15169</span>,
+  <span class="hl-key">"status"</span>: [<span class="hl-str">"active"</span>],
+  <span class="hl-key">"created"</span>: <span class="hl-str">"2000-03-30T00:00:00Z"</span>,
+  <span class="hl-key">"updated"</span>: <span class="hl-str">"2012-02-24T00:00:00Z"</span>,
+  <span class="hl-key">"entities"</span>: [
+    { <span class="hl-key">"roles"</span>: [<span class="hl-str">"registrant"</span>], <span class="hl-key">"name"</span>: <span class="hl-str">"Google LLC"</span>, <span class="hl-key">"handle"</span>: <span class="hl-str">"GOGL"</span> }
+  ],
+  <span class="hl-key">"raw"</span>: { <span class="hl-key">"..."</span>: <span class="hl-str">"..."</span> }
+}</pre>
+        </div>
+
+        <div class="tab-content" id="rdap-err">
+          <span class="response-badge resp-400">400 Bad Request</span>
+          <pre><span class="hl-comment">// Відсутній параметр</span>
+{ <span class="hl-key">"error"</span>: <span class="hl-str">"Параметр q не вказано"</span> }
+
+<span class="hl-comment">// Недопустимі символи</span>
+{ <span class="hl-key">"error"</span>: <span class="hl-str">"Недопустимі символи в імені"</span> }</pre>
+          <span class="response-badge resp-403">403 Forbidden</span>
+          <pre>{ <span class="hl-key">"error"</span>: <span class="hl-str">"Приватні та зарезервовані адреси заборонені"</span> }</pre>
+        </div>
+      </div>
+    </div>
+
     <!-- ERRORS SECTION -->
     <hr class="divider">
     <h2 class="section-title">Загальні помилки</h2>
@@ -1576,7 +2186,6 @@
       });
     }
 
-    // Active nav on scroll
     const sections = document.querySelectorAll('[id]');
     const navItems = document.querySelectorAll('.nav-item');
     window.addEventListener('scroll', () => {
