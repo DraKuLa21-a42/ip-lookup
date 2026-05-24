@@ -9,6 +9,8 @@
 - **SSL** — перевірка сертифікату: термін дії, ланцюжок довіри, SAN, TLS-версія, шифр, відповідність імені хоста
 - **Ping** — ICMP ping з RTT статистикою (min/avg/max/mdev) та відсотком втрат
 - **TCP** — перевірка портів списком або діапазоном, паралельне сканування до 100 портів
+- **WHOIS** — реєстраційна інформація для доменів та IP-адрес
+- **RDAP** — структурований аналог WHOIS (RFC 9083) для доменів, IP та ASN
 - **Мій IP** — автоматичне визначення IPv4 та IPv6 адреси клієнта
 
 ## Вимоги
@@ -258,6 +260,115 @@ GET /api/tcpcheck?host=example.com&ports=8080-8090
 
 ---
 
+### GET /api/whois
+
+WHOIS-інформація для домену або IP-адреси. Для доменів використовується `python-whois`, для IP — системна команда `whois` із парсингом ключових полів. Контактні дані можуть бути приховані через GDPR/редакцію реєстратора.
+
+```
+GET /api/whois?q=github.com
+GET /api/whois?q=8.8.8.8
+```
+
+| Параметр | Обов'язковий | Опис |
+|---|---|---|
+| `q` | так | Доменне ім'я або IP-адреса |
+
+**Повертає для домену:**
+
+| Поле | Тип | Опис |
+|---|---|---|
+| `type` | string | Завжди `"domain"` |
+| `domain` | string | Нормалізована назва домену |
+| `registrar` | string \| null | Назва реєстратора |
+| `registrar_url` | string \| null | URL реєстратора |
+| `whois_server` | string \| null | WHOIS-сервер реєстратора |
+| `status` | string \| string[] | Статуси EPP домену |
+| `name_servers` | string[] | Список NS-серверів (lower-case, дедупліковані) |
+| `created` / `updated` / `expires` | string \| null | Дати реєстрації, оновлення та закінчення (ISO 8601) |
+| `dnssec` | string \| null | Статус DNSSEC з WHOIS (наприклад, `unsigned`) |
+| `registrant_name` / `registrant_org` | string \| null | Дані власника (можуть бути приховані GDPR) |
+| `registrant_country` / `registrant_city` | string \| null | Географія власника |
+| `registrant_email` / `admin_email` / `tech_email` | string \| null | Контактні email (часто приховані) |
+| `raw` | string | Повний сирий текст WHOIS-відповіді |
+
+**Повертає для IP:**
+
+| Поле | Тип | Опис |
+|---|---|---|
+| `type` | string | Завжди `"ip"` |
+| `ip` | string | Запитана IP-адреса |
+| `netname` | string \| null | Назва мережі |
+| `netrange` | string \| null | Діапазон адрес мережі |
+| `cidr` | string \| null | CIDR-нотація блоку |
+| `country` | string \| null | Код країни |
+| `org` | string \| null | Організація-власник блоку |
+| `abuse_email` | string \| null | Email для репортів зловживань |
+| `rir` | string \| null | Регіональний реєстр: `ARIN`, `RIPE`, `APNIC`, `LACNIC`, `AFRINIC` |
+| `raw` | string | Повний сирий текст WHOIS-відповіді |
+
+Ліміт: 30 запитів / 60 сек.
+
+---
+
+### GET /api/rdap
+
+RDAP (RFC 9083) — структурований аналог WHOIS для домену, IP або ASN. Сервер автоматично обирає потрібний RDAP-endpoint через IANA bootstrap (`data.iana.org/rdap`) з кешуванням на 1 годину.
+
+```
+GET /api/rdap?q=github.com
+GET /api/rdap?q=8.8.8.8
+GET /api/rdap?q=AS15169
+GET /api/rdap?q=15169
+```
+
+| Параметр | Обов'язковий | Опис |
+|---|---|---|
+| `q` | так | Доменне ім'я, IP-адреса або ASN (`AS15169` або `15169`) |
+
+**Повертає для домену:**
+
+| Поле | Тип | Опис |
+|---|---|---|
+| `type` | string | `"domain"` |
+| `domain` | string | LDH-назва домену |
+| `handle` | string \| null | Унікальний ідентифікатор об'єкта в реєстрі |
+| `status` | string[] | Масив статусів EPP |
+| `created` / `updated` / `expires` | string \| null | Дати з events (ISO 8601) |
+| `name_servers` | string[] | Авторитативні NS (lower-case) |
+| `dnssec_delegation` | boolean \| null | `true` якщо делегування підписане |
+| `dnssec_zone` | boolean \| null | `true` якщо зона підписана |
+| `entities` | object[] | Контакти: registrant, registrar, abuse тощо |
+| `notices` | string[] | Назви правових повідомлень від реєстру |
+| `rdap_conformance` | string[] | Профілі RDAP відповіді |
+| `raw` | object | Повний JSON від RDAP-сервера |
+
+**Повертає для IP:**
+
+| Поле | Тип | Опис |
+|---|---|---|
+| `type` | string | `"ip"` |
+| `handle` / `name` | string \| null | Ідентифікатор та назва мережевого блоку |
+| `type_ip` | string \| null | Тип алокації: `ALLOCATED`, `ASSIGNED` тощо |
+| `start_addr` / `end_addr` | string | Початкова та кінцева адреса блоку |
+| `cidr` | string[] | CIDR-нотація |
+| `country` | string \| null | Код країни реєстрації блоку |
+| `parent_handle` | string \| null | Handle батьківського блоку |
+| `entities` | object[] | Контакти організації |
+
+**Повертає для ASN:**
+
+| Поле | Тип | Опис |
+|---|---|---|
+| `type` | string | `"asn"` |
+| `asn` | integer | Номер автономної системи |
+| `handle` / `name` | string \| null | Ідентифікатор та назва AS |
+| `start_asn` / `end_asn` | integer \| null | Діапазон ASN блоку |
+| `entities` | object[] | Контакти організації |
+
+Ліміт: 30 запитів / 60 сек.
+
+---
+
 ### GET /api/config
 
 Повертає публічну конфігурацію для фронтенду.
@@ -288,5 +399,6 @@ GET /api/tcpcheck?host=example.com&ports=8080-8090
 flask
 geoip2
 dnspython
+python-whois
 python-dotenv
 ```
