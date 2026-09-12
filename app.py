@@ -6,6 +6,7 @@ import os
 import re
 import ssl
 import datetime
+import logging
 import subprocess
 import time
 import threading
@@ -27,6 +28,16 @@ load_dotenv()
 
 LOG_DIR = os.path.join(os.path.dirname(__file__), "log")
 os.makedirs(LOG_DIR, exist_ok=True)
+provider_discovery_logger = logging.getLogger("provider_discovery")
+provider_discovery_logger.setLevel(logging.INFO)
+if not provider_discovery_logger.handlers:
+    provider_discovery_handler = logging.FileHandler(
+        os.path.join(LOG_DIR, "provider-discovery.log"), encoding="utf-8"
+    )
+    provider_discovery_handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    )
+    provider_discovery_logger.addHandler(provider_discovery_handler)
 
 DNS_RESOLVER_HOST = os.environ.get("DNS_RESOLVER_HOST", "8.8.8.8")
 DNS_RESOLVER_PORT = int(os.environ.get("DNS_RESOLVER_PORT", 53))
@@ -289,15 +300,28 @@ def _extract_bgp_site(html: str, organization: str | None) -> str | None:
 
 
 def _discover_provider_site(asn: int, organization: str | None) -> None:
+    status = "request_error"
+    http_status = None
     try:
         response = _req.get(
             f"https://bgp.tools/as/{asn}",
             headers={"User-Agent": "ip-lookup-provider-discovery/1.0"},
             timeout=PROVIDER_DISCOVERY_TIMEOUT,
         )
-        site = _extract_bgp_site(response.text, organization) if response.ok else None
-    except _req.RequestException:
+        http_status = response.status_code
+        if not response.ok:
+            site = None
+            status = "http_error"
+        else:
+            site = _extract_bgp_site(response.text, organization)
+            status = "site_found" if site else "site_not_found"
+    except _req.RequestException as error:
         site = None
+        status = "request_error"
+        provider_discovery_logger.warning(
+            "asn=%s organization=%r status=%s error=%s",
+            asn, organization, status, error,
+        )
 
     with _provider_overrides_lock:
         overrides = dict(_load_provider_overrides())
@@ -307,6 +331,8 @@ def _discover_provider_site(asn: int, organization: str | None) -> None:
                 **(current if isinstance(current, dict) else {}),
                 **({"organization": organization} if organization else {}),
                 **({"url": site} if site else {}),
+                "status": status,
+                **({"http_status": http_status} if http_status is not None else {}),
                 "checked_at": time.time(),
             }
             os.makedirs(os.path.dirname(PROVIDER_OVERRIDES_PATH), exist_ok=True)
@@ -316,6 +342,10 @@ def _discover_provider_site(asn: int, organization: str | None) -> None:
                 file.write("\n")
             os.replace(temporary_path, PROVIDER_OVERRIDES_PATH)
             _load_provider_overrides()
+            provider_discovery_logger.info(
+                "asn=%s organization=%r status=%s http_status=%s url=%r",
+                asn, organization, status, http_status, site,
+            )
 
 
 def _schedule_provider_discovery(asn: int, organization: str | None) -> None:

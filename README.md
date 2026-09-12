@@ -64,7 +64,9 @@ curl -X PUT https://ip-lookup.example.com/api/provider-overrides \
 клієнта або окремого сервісу, а не офіційний сайт ASN-провайдера.
 Для ASN без відомого сайту виконується фоновий запит до `bgp.tools`. Він не затримує
 відповідь lookup, має timeout 5 секунд і повторюється не частіше одного разу на 7 днів.
-Результат, включно з невдалим пошуком, зберігається у кеші.
+Результат, включно з невдалим пошуком, зберігається у кеші. Результати discovery
+додатково записуються у `log/provider-discovery.log`; у кеші зберігаються `status`
+(`site_found`, `site_not_found`, `http_error` або `request_error`) та HTTP-код відповіді.
 
 ```bash
 curl -X PUT https://ip-lookup.example.com/api/provider-overrides \
