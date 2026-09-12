@@ -362,6 +362,23 @@ header {
   color: var(--danger);
 }
 
+.provider-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.provider-link:hover {
+  color: var(--accent);
+}
+
+.provider-favicon {
+  flex: 0 0 auto;
+  border-radius: 3px;
+}
+
 /* ── Card footer / map links ─────────────────────────────────────────────── */
 .card-footer {
   display: flex;

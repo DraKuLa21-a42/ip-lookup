@@ -39,11 +39,34 @@ deactivate
 IPV4_ENDPOINT=https://ip-lookup-v4.example.com/api/myip
 DNS_RESOLVER_HOST=1.1.1.1
 DNS_RESOLVER_PORT=53
+# Токен для редагування ручних відповідностей провайдерів
+PROVIDER_ADMIN_TOKEN=згенеруй_довгий_випадковий_токен
 ```
 
 > `IPV4_ENDPOINT` — піддомен з тільки `A` записом у DNS. Потрібен для коректного визначення IPv4 адреси клієнта коли основний домен має і `A` і `AAAA`.
 
 > `DNS_RESOLVER_HOST`, `DNS_RESOLVER_PORT` — можливість вказати свій DNS сервер. Якщо не вказано — використовується `8.8.8.8`.
+
+Ручні відповідності провайдерів зберігаються у `data/provider-overrides.json`. Файл кешується
+в пам'яті та перечитується після зміни, тому lookup не виконує додаткових мережевих запитів.
+Також запис можна змінити через `PUT /api/provider-overrides` із заголовком
+`X-Provider-Admin-Token`, що відповідає `PROVIDER_ADMIN_TOKEN`:
+
+```bash
+curl -X PUT https://ip-lookup.example.com/api/provider-overrides \
+  -H "Content-Type: application/json" \
+  -H "X-Provider-Admin-Token: ваш_токен" \
+  -d '{"organization":"Google LLC","url":"https://google.com","favicon":"https://www.google.com/favicon.ico"}'
+```
+
+Для неоднозначних назв організацій можна прив'язати сайт безпосередньо до ASN:
+
+```bash
+curl -X PUT https://ip-lookup.example.com/api/provider-overrides \
+  -H "Content-Type: application/json" \
+  -H "X-Provider-Admin-Token: ваш_токен" \
+  -d '{"asn":24940,"organization":"Hetzner Online GmbH","url":"https://hetzner.com"}'
+```
 
 Запуск:
 
