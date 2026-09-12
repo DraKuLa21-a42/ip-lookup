@@ -26,6 +26,23 @@ export function errCard(msg) {
   return `<div class="card"><div class="state"><div class="error-icon">❌</div>${msg}</div></div>`;
 }
 
+function providerHtml(d) {
+  if (!d.asn_org) return null;
+  if (!d.provider_url) return d.asn_org;
+
+  try {
+    const providerUrl = new URL(d.provider_url);
+    const faviconUrl = d.provider_favicon ||
+      `https://www.google.com/s2/favicons?domain=${encodeURIComponent(providerUrl.hostname)}&sz=32`;
+    return `<a class="provider-link" href="${providerUrl.href}" target="_blank" rel="noopener noreferrer">
+      <img class="provider-favicon" src="${faviconUrl}" width="16" height="16" alt="">
+      <span>${d.asn_org}</span>
+    </a>`;
+  } catch {
+    return d.asn_org;
+  }
+}
+
 // ── IP rows & map ─────────────────────────────────────────────────────────
 
 function ipRowsHtml(d) {
@@ -38,7 +55,7 @@ function ipRowsHtml(d) {
     ['Часовий пояс', d.timezone],
     ['Координати',   (d.latitude && d.longitude) ? `${d.latitude}, ${d.longitude}` : null],
     ['ASN',          d.asn ? `AS${d.asn}` : null, 'accent'],
-    ['Провайдер',    d.asn_org],
+    ['Провайдер',    providerHtml(d)],
     ['IP версія',    d.version ? `IPv${d.version}` : null],
   ];
   return rows.map(([label, value, cls = '']) => `

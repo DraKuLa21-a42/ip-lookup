@@ -9,6 +9,7 @@ import datetime
 import subprocess
 import time
 import threading
+from urllib.parse import urlparse
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
@@ -176,6 +177,85 @@ def get_rdns(ip: str) -> str | None:
         return None
 
 
+PROVIDER_SITES = {
+    "google": "https://google.com",
+    "google llc": "https://google.com",
+    "cloudflare": "https://cloudflare.com",
+    "cloudflare, inc.": "https://cloudflare.com",
+    "amazon": "https://amazon.com",
+    "amazon.com, inc.": "https://amazon.com",
+    "microsoft": "https://microsoft.com",
+    "microsoft corporation": "https://microsoft.com",
+    "meta": "https://meta.com",
+    "meta platforms, inc.": "https://meta.com",
+    "apple": "https://apple.com",
+    "apple inc.": "https://apple.com",
+    "digitalocean": "https://digitalocean.com",
+    "digitalocean, llc": "https://digitalocean.com",
+}
+
+PROVIDER_OVERRIDES_PATH = os.path.join("data", "provider-overrides.json")
+_provider_overrides_lock = threading.Lock()
+_provider_overrides_cache: dict[str, dict] | None = None
+_provider_overrides_mtime: float | None = None
+
+
+def _load_provider_overrides() -> dict[str, dict]:
+    global _provider_overrides_cache, _provider_overrides_mtime
+    try:
+        mtime = os.path.getmtime(PROVIDER_OVERRIDES_PATH)
+    except OSError:
+        mtime = None
+
+    with _provider_overrides_lock:
+        if (_provider_overrides_cache is not None
+                and _provider_overrides_mtime == mtime):
+            return _provider_overrides_cache
+        if mtime is None:
+            _provider_overrides_cache = {}
+            _provider_overrides_mtime = None
+            return _provider_overrides_cache
+        try:
+            with open(PROVIDER_OVERRIDES_PATH, encoding="utf-8") as file:
+                data = _json.load(file)
+            _provider_overrides_cache = data if isinstance(data, dict) else {}
+        except (OSError, ValueError):
+            _provider_overrides_cache = {}
+        _provider_overrides_mtime = mtime
+        return _provider_overrides_cache
+
+
+def _provider_override(org: str | None) -> dict:
+    if not org:
+        return {}
+    value = _load_provider_overrides().get(org.strip().lower(), {})
+    return value if isinstance(value, dict) else {}
+
+
+def _is_http_url(value: str | None) -> bool:
+    if not value:
+        return False
+    parsed = urlparse(value)
+    return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+
+def get_provider_site(org: str | None, rdns: str | None) -> str | None:
+    """Return a provider website when it can be identified reliably."""
+    if org:
+        normalized = org.strip().lower()
+        override = _provider_override(org)
+        if _is_http_url(override.get("url")):
+            return override["url"]
+        if normalized in PROVIDER_SITES:
+            return PROVIDER_SITES[normalized]
+
+    if rdns:
+        labels = rdns.rstrip(".").split(".")
+        if len(labels) >= 2 and all(re.fullmatch(r"[a-z0-9-]+", label, re.I) for label in labels):
+            return f"https://{'.'.join(labels[-2:])}"
+    return None
+
+
 def lookup_ip(ip: str) -> dict:
     result = {"ip": ip, "rdns": get_rdns(ip)}
     try:
@@ -197,6 +277,12 @@ def lookup_ip(ip: str) -> dict:
             asn = reader.asn(ip)
             result["asn"]     = asn.autonomous_system_number
             result["asn_org"] = asn.autonomous_system_organization
+            result["provider_url"] = get_provider_site(
+                result["asn_org"], result["rdns"]
+            )
+            override = _provider_override(result["asn_org"])
+            if _is_http_url(override.get("favicon")):
+                result["provider_favicon"] = override["favicon"]
     except Exception as e:
         result["asn_error"] = str(e)
     try:
@@ -259,6 +345,53 @@ def api_config():
         "ipv4_endpoint": os.environ.get("IPV4_ENDPOINT", "/api/myip"),
         "ipv6_endpoint": os.environ.get("IPV6_ENDPOINT", "/api/myip"),
     })
+
+
+def _provider_admin_authorized() -> bool:
+    configured_token = os.environ.get("PROVIDER_ADMIN_TOKEN")
+    supplied_token = request.headers.get("X-Provider-Admin-Token")
+    return bool(configured_token and supplied_token
+                and supplied_token == configured_token)
+
+
+@app.route("/api/provider-overrides", methods=["GET", "PUT", "DELETE"])
+def api_provider_overrides():
+    """Read or manage manually curated provider websites and favicons."""
+    if request.method == "GET":
+        return jsonify(_load_provider_overrides())
+    if not _provider_admin_authorized():
+        return jsonify({"error": "Потрібен дійсний токен адміністратора"}), 401
+
+    payload = request.get_json(silent=True) or {}
+    organization = str(payload.get("organization", "")).strip()
+    key = organization.lower()
+    if not organization:
+        return jsonify({"error": "Потрібне поле organization"}), 400
+
+    overrides = dict(_load_provider_overrides())
+    if request.method == "DELETE":
+        overrides.pop(key, None)
+    else:
+        url = str(payload.get("url", "")).strip()
+        favicon = str(payload.get("favicon", "")).strip()
+        if not _is_http_url(url):
+            return jsonify({"error": "url має бути повним HTTP(S) URL"}), 400
+        if favicon and not _is_http_url(favicon):
+            return jsonify({"error": "favicon має бути повним HTTP(S) URL"}), 400
+        overrides[key] = {
+            "organization": organization,
+            "url": url,
+            **({"favicon": favicon} if favicon else {}),
+        }
+
+    os.makedirs(os.path.dirname(PROVIDER_OVERRIDES_PATH), exist_ok=True)
+    temporary_path = PROVIDER_OVERRIDES_PATH + ".tmp"
+    with open(temporary_path, "w", encoding="utf-8") as file:
+        _json.dump(overrides, file, ensure_ascii=False, indent=2)
+        file.write("\n")
+    os.replace(temporary_path, PROVIDER_OVERRIDES_PATH)
+    _load_provider_overrides()
+    return jsonify(overrides)
 
 
 @app.route("/api/resolve")
