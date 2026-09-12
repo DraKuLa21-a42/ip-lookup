@@ -197,6 +197,10 @@ PROVIDER_SITES = {
 PROVIDER_ASN_SITES = {
     201094: "https://gmhost.com.ua",
     24940: "https://hetzner.com",
+    59627: "https://docker.ru",
+    200350: "https://yandex.cloud",
+    43896: "https://evo.company",
+    47447: "https://23m.com",
 }
 
 PROVIDER_OVERRIDES_PATH = os.path.join("data", "provider-overrides.json")
@@ -265,11 +269,6 @@ def get_provider_site(org: str | None, rdns: str | None,
         normalized = org.strip().lower()
         if normalized in PROVIDER_SITES:
             return PROVIDER_SITES[normalized]
-
-    if rdns:
-        labels = rdns.rstrip(".").split(".")
-        if len(labels) >= 2 and all(re.fullmatch(r"[a-z0-9-]+", label, re.I) for label in labels):
-            return f"https://{'.'.join(labels[-2:])}"
     return None
 
 

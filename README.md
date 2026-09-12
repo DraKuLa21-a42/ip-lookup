@@ -59,7 +59,9 @@ curl -X PUT https://ip-lookup.example.com/api/provider-overrides \
   -d '{"organization":"Google LLC","url":"https://google.com","favicon":"https://www.google.com/favicon.ico"}'
 ```
 
-Для неоднозначних назв організацій можна прив'язати сайт безпосередньо до ASN:
+Для неоднозначних назв організацій можна прив'язати сайт безпосередньо до ASN.
+Сайт більше не виводиться евристично з rDNS: reverse DNS часто містить домен
+клієнта або окремого сервісу, а не офіційний сайт ASN-провайдера.
 
 ```bash
 curl -X PUT https://ip-lookup.example.com/api/provider-overrides \
