@@ -59,6 +59,15 @@ curl -X PUT https://ip-lookup.example.com/api/provider-overrides \
   -d '{"organization":"Google LLC","url":"https://google.com","favicon":"https://www.google.com/favicon.ico"}'
 ```
 
+Для неоднозначних назв організацій можна прив'язати сайт безпосередньо до ASN:
+
+```bash
+curl -X PUT https://ip-lookup.example.com/api/provider-overrides \
+  -H "Content-Type: application/json" \
+  -H "X-Provider-Admin-Token: ваш_токен" \
+  -d '{"asn":24940,"organization":"Hetzner Online GmbH","url":"https://hetzner.com"}'
+```
+
 Запуск:
 
 ```bash

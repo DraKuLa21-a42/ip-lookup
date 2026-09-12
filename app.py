@@ -194,6 +194,11 @@ PROVIDER_SITES = {
     "digitalocean, llc": "https://digitalocean.com",
 }
 
+PROVIDER_ASN_SITES = {
+    201094: "https://gmhost.com.ua",
+    24940: "https://hetzner.com",
+}
+
 PROVIDER_OVERRIDES_PATH = os.path.join("data", "provider-overrides.json")
 _provider_overrides_lock = threading.Lock()
 _provider_overrides_cache: dict[str, dict] | None = None
@@ -225,11 +230,19 @@ def _load_provider_overrides() -> dict[str, dict]:
         return _provider_overrides_cache
 
 
-def _provider_override(org: str | None) -> dict:
-    if not org:
+def _provider_override(org: str | None, asn: int | None = None) -> dict:
+    if not org and asn is None:
         return {}
-    value = _load_provider_overrides().get(org.strip().lower(), {})
-    return value if isinstance(value, dict) else {}
+    overrides = _load_provider_overrides()
+    if asn is not None:
+        value = overrides.get(f"asn:{asn}", {})
+        if isinstance(value, dict):
+            return value
+    if org:
+        value = overrides.get(org.strip().lower(), {})
+        if isinstance(value, dict):
+            return value
+    return {}
 
 
 def _is_http_url(value: str | None) -> bool:
@@ -239,13 +252,17 @@ def _is_http_url(value: str | None) -> bool:
     return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
 
-def get_provider_site(org: str | None, rdns: str | None) -> str | None:
+def get_provider_site(org: str | None, rdns: str | None,
+                      asn: int | None = None) -> str | None:
     """Return a provider website when it can be identified reliably."""
+    override = _provider_override(org, asn)
+    if _is_http_url(override.get("url")):
+        return override["url"]
+    if asn in PROVIDER_ASN_SITES:
+        return PROVIDER_ASN_SITES[asn]
+
     if org:
         normalized = org.strip().lower()
-        override = _provider_override(org)
-        if _is_http_url(override.get("url")):
-            return override["url"]
         if normalized in PROVIDER_SITES:
             return PROVIDER_SITES[normalized]
 
@@ -278,9 +295,9 @@ def lookup_ip(ip: str) -> dict:
             result["asn"]     = asn.autonomous_system_number
             result["asn_org"] = asn.autonomous_system_organization
             result["provider_url"] = get_provider_site(
-                result["asn_org"], result["rdns"]
+                result["asn_org"], result["rdns"], result["asn"]
             )
-            override = _provider_override(result["asn_org"])
+            override = _provider_override(result["asn_org"], result["asn"])
             if _is_http_url(override.get("favicon")):
                 result["provider_favicon"] = override["favicon"]
     except Exception as e:
@@ -364,9 +381,14 @@ def api_provider_overrides():
 
     payload = request.get_json(silent=True) or {}
     organization = str(payload.get("organization", "")).strip()
-    key = organization.lower()
-    if not organization:
-        return jsonify({"error": "Потрібне поле organization"}), 400
+    raw_asn = payload.get("asn")
+    try:
+        asn = int(raw_asn) if raw_asn is not None else None
+    except (TypeError, ValueError):
+        return jsonify({"error": "asn має бути числом"}), 400
+    if not organization and asn is None:
+        return jsonify({"error": "Потрібне поле organization або asn"}), 400
+    key = f"asn:{asn}" if asn is not None else organization.lower()
 
     overrides = dict(_load_provider_overrides())
     if request.method == "DELETE":
@@ -379,7 +401,8 @@ def api_provider_overrides():
         if favicon and not _is_http_url(favicon):
             return jsonify({"error": "favicon має бути повним HTTP(S) URL"}), 400
         overrides[key] = {
-            "organization": organization,
+            **({"organization": organization} if organization else {}),
+            **({"asn": asn} if asn is not None else {}),
             "url": url,
             **({"favicon": favicon} if favicon else {}),
         }
