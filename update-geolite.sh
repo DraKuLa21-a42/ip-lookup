@@ -110,7 +110,7 @@ for file in "${FILES[@]}"; do
     # Атомарна заміна
     mv "$SRC" "$DST"
 
-    chown "${OWNER}:${GROUP}" "$DST"
+    chown "${USER}:${USER}" "$DST"
     chmod 0644 "$DST"
 
 done
