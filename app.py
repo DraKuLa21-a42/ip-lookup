@@ -217,6 +217,7 @@ PROVIDER_ASN_SITES = {
 PROVIDER_OVERRIDES_PATH = os.path.join("data", "provider-overrides.json")
 PROVIDER_DISCOVERY_TTL = 7 * 24 * 60 * 60
 PROVIDER_DISCOVERY_TIMEOUT = 5
+PROVIDER_DISCOVERY_VERSION = 2
 _provider_overrides_lock = threading.RLock()
 _provider_overrides_cache: dict[str, dict] | None = None
 _provider_overrides_mtime: float | None = None
@@ -273,7 +274,10 @@ def _is_http_url(value: str | None) -> bool:
 
 def _provider_discovery_fresh(value: dict) -> bool:
     try:
-        return time.time() - float(value.get("checked_at", 0)) < PROVIDER_DISCOVERY_TTL
+        return (
+            value.get("discovery_version") == PROVIDER_DISCOVERY_VERSION
+            and time.time() - float(value.get("checked_at", 0)) < PROVIDER_DISCOVERY_TTL
+        )
     except (TypeError, ValueError):
         return False
 
@@ -299,9 +303,29 @@ def _extract_bgp_site(html: str, organization: str | None) -> str | None:
     return candidate if org_tokens & host_tokens else None
 
 
+def _discover_peeringdb_site(asn: int) -> tuple[str | None, str]:
+    try:
+        response = _req.get(
+            f"https://www.peeringdb.com/api/net?asn={asn}",
+            headers={"Accept": "application/json"},
+            timeout=PROVIDER_DISCOVERY_TIMEOUT,
+        )
+        if not response.ok:
+            return None, f"peeringdb_http_{response.status_code}"
+        networks = response.json().get("data", [])
+        for network in networks:
+            website = network.get("website")
+            if _is_http_url(website):
+                return website, "peeringdb"
+        return None, "peeringdb_site_not_found"
+    except (_req.RequestException, ValueError, TypeError):
+        return None, "peeringdb_request_error"
+
+
 def _discover_provider_site(asn: int, organization: str | None) -> None:
     status = "request_error"
     http_status = None
+    source = "bgp.tools"
     try:
         response = _req.get(
             f"https://bgp.tools/as/{asn}",
@@ -323,6 +347,14 @@ def _discover_provider_site(asn: int, organization: str | None) -> None:
             asn, organization, status, error,
         )
 
+    if not site:
+        site, peeringdb_status = _discover_peeringdb_site(asn)
+        if site:
+            status = "site_found"
+            source = "peeringdb"
+        elif status == "site_not_found":
+            status = peeringdb_status
+
     with _provider_overrides_lock:
         overrides = dict(_load_provider_overrides())
         current = overrides.get(f"asn:{asn}", {})
@@ -332,6 +364,8 @@ def _discover_provider_site(asn: int, organization: str | None) -> None:
                 **({"organization": organization} if organization else {}),
                 **({"url": site} if site else {}),
                 "status": status,
+                "discovery_source": source,
+                "discovery_version": PROVIDER_DISCOVERY_VERSION,
                 **({"http_status": http_status} if http_status is not None else {}),
                 "checked_at": time.time(),
             }
@@ -343,8 +377,8 @@ def _discover_provider_site(asn: int, organization: str | None) -> None:
             os.replace(temporary_path, PROVIDER_OVERRIDES_PATH)
             _load_provider_overrides()
             provider_discovery_logger.info(
-                "asn=%s organization=%r status=%s http_status=%s url=%r",
-                asn, organization, status, http_status, site,
+                "asn=%s organization=%r status=%s source=%s http_status=%s url=%r",
+                asn, organization, status, source, http_status, site,
             )
 
 
