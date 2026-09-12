@@ -810,6 +810,45 @@
       </div>
     </section>
 
+    <!-- PROVIDER DISCOVERY -->
+    <section id="provider-discovery">
+      <h2 class="section-title">Сайт провайдера</h2>
+      <p class="section-desc">Автоматичне визначення сайту організації, що володіє ASN.</p>
+      <div class="info-box">
+        <span class="icon">ℹ</span>
+        <span>У відповідях <code style="font-family:var(--mono);font-size:12px">/api/lookup</code>,
+          <code style="font-family:var(--mono);font-size:12px">/api/query</code> та
+          <code style="font-family:var(--mono);font-size:12px">/api/resolve</code> можуть бути поля
+          <code style="font-family:var(--mono);font-size:12px">provider_url</code> і
+          <code style="font-family:var(--mono);font-size:12px">provider_favicon</code>.</span>
+      </div>
+      <div class="info-box">
+        <span class="icon">↗</span>
+        <span>Пріоритет джерел: ручні відповідності, вбудований каталог, фоновий BGP.Tools,
+          потім PeeringDB API. Якщо сайт не підтверджено, поля не додаються. rDNS не
+          використовується для підстановки сайту, бо може належати клієнту або окремому сервісу.</span>
+      </div>
+      <div class="info-box">
+        <span class="icon">⟳</span>
+        <span>Фоновий пошук не затримує IP lookup. Результат кешується на 7 днів у
+          <code style="font-family:var(--mono);font-size:12px">data/provider-overrides.json</code>;
+          події записуються у <code style="font-family:var(--mono);font-size:12px">log/provider-discovery.log</code>.
+          Ручні відповідності мають найвищий пріоритет.</span>
+      </div>
+      <div class="example-block">
+        <div class="example-label"><span class="dot" style="color:var(--accent)"></span> Ручна відповідність за ASN</div>
+        <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="hl-url">PUT /api/provider-overrides</span>
+<span class="hl-comment">X-Provider-Admin-Token: ваш_токен</span>
+<span class="hl-comment">Content-Type: application/json</span>
+
+{
+  <span class="hl-key">"asn"</span>: <span class="hl-num">200000</span>,
+  <span class="hl-key">"organization"</span>: <span class="hl-str">"Hosting Ukraine LTD"</span>,
+  <span class="hl-key">"url"</span>: <span class="hl-str">"https://www.ukraine.com.ua"</span>
+}</pre>
+      </div>
+    </section>
+
     <!-- RATE LIMITS -->
     <section id="ratelimits">
       <h2 class="section-title">Rate Limits</h2>
@@ -954,6 +993,12 @@
         </div>
         <div class="tab-content" id="lookup-resp">
           <span class="response-badge resp-200">200 OK</span>
+          <div class="info-box">
+            <span class="icon">ℹ</span>
+            <span><code style="font-family:var(--mono);font-size:12px">provider_url</code> і
+              <code style="font-family:var(--mono);font-size:12px">provider_favicon</code>
+              повертаються, якщо сайт провайдера вдалося підтвердити.</span>
+          </div>
           <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>{
   <span class="hl-key">"ip"</span>: <span class="hl-str">"8.8.8.8"</span>,
   <span class="hl-key">"rdns"</span>: <span class="hl-str">"dns.google"</span>,
@@ -968,6 +1013,8 @@
   <span class="hl-key">"postal"</span>: <span class="hl-str">"94035"</span>,
   <span class="hl-key">"asn"</span>: <span class="hl-num">15169</span>,
   <span class="hl-key">"asn_org"</span>: <span class="hl-str">"GOOGLE"</span>,
+  <span class="hl-key">"provider_url"</span>: <span class="hl-str">"https://google.com"</span>,
+  <span class="hl-key">"provider_favicon"</span>: <span class="hl-str">"https://www.google.com/s2/favicons?domain=google.com&amp;sz=32"</span>,
   <span class="hl-key">"version"</span>: <span class="hl-num">4</span>,
   <span class="hl-key">"is_private"</span>: <span class="hl-bool">false</span>,
   <span class="hl-key">"is_loopback"</span>: <span class="hl-bool">false</span>

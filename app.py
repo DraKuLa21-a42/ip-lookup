@@ -6,6 +6,7 @@ import os
 import re
 import ssl
 import datetime
+import logging
 import subprocess
 import time
 import threading
@@ -27,6 +28,16 @@ load_dotenv()
 
 LOG_DIR = os.path.join(os.path.dirname(__file__), "log")
 os.makedirs(LOG_DIR, exist_ok=True)
+provider_discovery_logger = logging.getLogger("provider_discovery")
+provider_discovery_logger.setLevel(logging.INFO)
+if not provider_discovery_logger.handlers:
+    provider_discovery_handler = logging.FileHandler(
+        os.path.join(LOG_DIR, "provider-discovery.log"), encoding="utf-8"
+    )
+    provider_discovery_handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    )
+    provider_discovery_logger.addHandler(provider_discovery_handler)
 
 DNS_RESOLVER_HOST = os.environ.get("DNS_RESOLVER_HOST", "8.8.8.8")
 DNS_RESOLVER_PORT = int(os.environ.get("DNS_RESOLVER_PORT", 53))
@@ -197,12 +208,21 @@ PROVIDER_SITES = {
 PROVIDER_ASN_SITES = {
     201094: "https://gmhost.com.ua",
     24940: "https://hetzner.com",
+    59627: "https://docker.ru",
+    200350: "https://yandex.cloud",
+    43896: "https://evo.company",
+    47447: "https://23m.com",
 }
 
 PROVIDER_OVERRIDES_PATH = os.path.join("data", "provider-overrides.json")
-_provider_overrides_lock = threading.Lock()
+PROVIDER_DISCOVERY_TTL = 7 * 24 * 60 * 60
+PROVIDER_DISCOVERY_TIMEOUT = 5
+PROVIDER_DISCOVERY_VERSION = 2
+_provider_overrides_lock = threading.RLock()
 _provider_overrides_cache: dict[str, dict] | None = None
 _provider_overrides_mtime: float | None = None
+_provider_discovery_executor = ThreadPoolExecutor(max_workers=2)
+_provider_discovery_in_flight: set[int] = set()
 
 
 def _load_provider_overrides() -> dict[str, dict]:
@@ -252,6 +272,135 @@ def _is_http_url(value: str | None) -> bool:
     return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
 
+def _provider_discovery_fresh(value: dict) -> bool:
+    try:
+        return (
+            value.get("discovery_version") == PROVIDER_DISCOVERY_VERSION
+            and time.time() - float(value.get("checked_at", 0)) < PROVIDER_DISCOVERY_TTL
+        )
+    except (TypeError, ValueError):
+        return False
+
+
+def _extract_bgp_site(html: str, organization: str | None) -> str | None:
+    """Extract only an explicitly labelled website, never an arbitrary rDNS URL."""
+    match = re.search(
+        r"(?:website|web site|homepage|official site)\s*[:<][^>]{0,80}"
+        r"(https?://[^\s\"'<>]+)",
+        html,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    candidate = match.group(1).rstrip(").,;")
+    if not _is_http_url(candidate):
+        return None
+    host = urlparse(candidate).hostname or ""
+    org_tokens = {
+        token.lower() for token in re.findall(r"[a-z0-9]{3,}", organization or "")
+    }
+    host_tokens = set(re.findall(r"[a-z0-9]{3,}", host.lower()))
+    return candidate if org_tokens & host_tokens else None
+
+
+def _discover_peeringdb_site(asn: int) -> tuple[str | None, str]:
+    try:
+        response = _req.get(
+            f"https://www.peeringdb.com/api/net?asn={asn}",
+            headers={"Accept": "application/json"},
+            timeout=PROVIDER_DISCOVERY_TIMEOUT,
+        )
+        if not response.ok:
+            return None, f"peeringdb_http_{response.status_code}"
+        networks = response.json().get("data", [])
+        for network in networks:
+            website = network.get("website")
+            if _is_http_url(website):
+                return website, "peeringdb"
+        return None, "peeringdb_site_not_found"
+    except (_req.RequestException, ValueError, TypeError):
+        return None, "peeringdb_request_error"
+
+
+def _discover_provider_site(asn: int, organization: str | None) -> None:
+    status = "request_error"
+    http_status = None
+    source = "bgp.tools"
+    try:
+        response = _req.get(
+            f"https://bgp.tools/as/{asn}",
+            headers={"User-Agent": "ip-lookup-provider-discovery/1.0"},
+            timeout=PROVIDER_DISCOVERY_TIMEOUT,
+        )
+        http_status = response.status_code
+        if not response.ok:
+            site = None
+            status = "http_error"
+        else:
+            site = _extract_bgp_site(response.text, organization)
+            status = "site_found" if site else "site_not_found"
+    except _req.RequestException as error:
+        site = None
+        status = "request_error"
+        provider_discovery_logger.warning(
+            "asn=%s organization=%r status=%s error=%s",
+            asn, organization, status, error,
+        )
+
+    if not site:
+        site, peeringdb_status = _discover_peeringdb_site(asn)
+        if site:
+            status = "site_found"
+            source = "peeringdb"
+        elif status == "site_not_found":
+            status = peeringdb_status
+
+    with _provider_overrides_lock:
+        overrides = dict(_load_provider_overrides())
+        current = overrides.get(f"asn:{asn}", {})
+        if not isinstance(current, dict) or not _is_http_url(current.get("url")):
+            overrides[f"asn:{asn}"] = {
+                **(current if isinstance(current, dict) else {}),
+                **({"organization": organization} if organization else {}),
+                **({"url": site} if site else {}),
+                "status": status,
+                "discovery_source": source,
+                "discovery_version": PROVIDER_DISCOVERY_VERSION,
+                **({"http_status": http_status} if http_status is not None else {}),
+                "checked_at": time.time(),
+            }
+            os.makedirs(os.path.dirname(PROVIDER_OVERRIDES_PATH), exist_ok=True)
+            temporary_path = PROVIDER_OVERRIDES_PATH + ".tmp"
+            with open(temporary_path, "w", encoding="utf-8") as file:
+                _json.dump(overrides, file, ensure_ascii=False, indent=2)
+                file.write("\n")
+            os.replace(temporary_path, PROVIDER_OVERRIDES_PATH)
+            _load_provider_overrides()
+            provider_discovery_logger.info(
+                "asn=%s organization=%r status=%s source=%s http_status=%s url=%r",
+                asn, organization, status, source, http_status, site,
+            )
+
+
+def _schedule_provider_discovery(asn: int, organization: str | None) -> None:
+    with _provider_overrides_lock:
+        if asn in _provider_discovery_in_flight:
+            return
+        value = _load_provider_overrides().get(f"asn:{asn}", {})
+        if isinstance(value, dict) and _provider_discovery_fresh(value):
+            return
+        _provider_discovery_in_flight.add(asn)
+
+    def run() -> None:
+        try:
+            _discover_provider_site(asn, organization)
+        finally:
+            with _provider_overrides_lock:
+                _provider_discovery_in_flight.discard(asn)
+
+    _provider_discovery_executor.submit(run)
+
+
 def get_provider_site(org: str | None, rdns: str | None,
                       asn: int | None = None) -> str | None:
     """Return a provider website when it can be identified reliably."""
@@ -265,11 +414,8 @@ def get_provider_site(org: str | None, rdns: str | None,
         normalized = org.strip().lower()
         if normalized in PROVIDER_SITES:
             return PROVIDER_SITES[normalized]
-
-    if rdns:
-        labels = rdns.rstrip(".").split(".")
-        if len(labels) >= 2 and all(re.fullmatch(r"[a-z0-9-]+", label, re.I) for label in labels):
-            return f"https://{'.'.join(labels[-2:])}"
+    if asn is not None:
+        _schedule_provider_discovery(asn, org)
     return None
 
 
