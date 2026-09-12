@@ -204,9 +204,13 @@ PROVIDER_ASN_SITES = {
 }
 
 PROVIDER_OVERRIDES_PATH = os.path.join("data", "provider-overrides.json")
-_provider_overrides_lock = threading.Lock()
+PROVIDER_DISCOVERY_TTL = 7 * 24 * 60 * 60
+PROVIDER_DISCOVERY_TIMEOUT = 5
+_provider_overrides_lock = threading.RLock()
 _provider_overrides_cache: dict[str, dict] | None = None
 _provider_overrides_mtime: float | None = None
+_provider_discovery_executor = ThreadPoolExecutor(max_workers=2)
+_provider_discovery_in_flight: set[int] = set()
 
 
 def _load_provider_overrides() -> dict[str, dict]:
@@ -256,6 +260,83 @@ def _is_http_url(value: str | None) -> bool:
     return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
 
+def _provider_discovery_fresh(value: dict) -> bool:
+    try:
+        return time.time() - float(value.get("checked_at", 0)) < PROVIDER_DISCOVERY_TTL
+    except (TypeError, ValueError):
+        return False
+
+
+def _extract_bgp_site(html: str, organization: str | None) -> str | None:
+    """Extract only an explicitly labelled website, never an arbitrary rDNS URL."""
+    match = re.search(
+        r"(?:website|web site|homepage|official site)\s*[:<][^>]{0,80}"
+        r"(https?://[^\s\"'<>]+)",
+        html,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    candidate = match.group(1).rstrip(").,;")
+    if not _is_http_url(candidate):
+        return None
+    host = urlparse(candidate).hostname or ""
+    org_tokens = {
+        token.lower() for token in re.findall(r"[a-z0-9]{3,}", organization or "")
+    }
+    host_tokens = set(re.findall(r"[a-z0-9]{3,}", host.lower()))
+    return candidate if org_tokens & host_tokens else None
+
+
+def _discover_provider_site(asn: int, organization: str | None) -> None:
+    try:
+        response = _req.get(
+            f"https://bgp.tools/as/{asn}",
+            headers={"User-Agent": "ip-lookup-provider-discovery/1.0"},
+            timeout=PROVIDER_DISCOVERY_TIMEOUT,
+        )
+        site = _extract_bgp_site(response.text, organization) if response.ok else None
+    except _req.RequestException:
+        site = None
+
+    with _provider_overrides_lock:
+        overrides = dict(_load_provider_overrides())
+        current = overrides.get(f"asn:{asn}", {})
+        if not isinstance(current, dict) or not _is_http_url(current.get("url")):
+            overrides[f"asn:{asn}"] = {
+                **(current if isinstance(current, dict) else {}),
+                **({"organization": organization} if organization else {}),
+                **({"url": site} if site else {}),
+                "checked_at": time.time(),
+            }
+            os.makedirs(os.path.dirname(PROVIDER_OVERRIDES_PATH), exist_ok=True)
+            temporary_path = PROVIDER_OVERRIDES_PATH + ".tmp"
+            with open(temporary_path, "w", encoding="utf-8") as file:
+                _json.dump(overrides, file, ensure_ascii=False, indent=2)
+                file.write("\n")
+            os.replace(temporary_path, PROVIDER_OVERRIDES_PATH)
+            _load_provider_overrides()
+
+
+def _schedule_provider_discovery(asn: int, organization: str | None) -> None:
+    with _provider_overrides_lock:
+        if asn in _provider_discovery_in_flight:
+            return
+        value = _load_provider_overrides().get(f"asn:{asn}", {})
+        if isinstance(value, dict) and _provider_discovery_fresh(value):
+            return
+        _provider_discovery_in_flight.add(asn)
+
+    def run() -> None:
+        try:
+            _discover_provider_site(asn, organization)
+        finally:
+            with _provider_overrides_lock:
+                _provider_discovery_in_flight.discard(asn)
+
+    _provider_discovery_executor.submit(run)
+
+
 def get_provider_site(org: str | None, rdns: str | None,
                       asn: int | None = None) -> str | None:
     """Return a provider website when it can be identified reliably."""
@@ -269,6 +350,8 @@ def get_provider_site(org: str | None, rdns: str | None,
         normalized = org.strip().lower()
         if normalized in PROVIDER_SITES:
             return PROVIDER_SITES[normalized]
+    if asn is not None:
+        _schedule_provider_discovery(asn, org)
     return None
 
 
