@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file
 import geoip2.database
 import socket
 import ipaddress
@@ -10,7 +10,7 @@ import logging
 import subprocess
 import time
 import threading
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
@@ -218,11 +218,15 @@ PROVIDER_OVERRIDES_PATH = os.path.join("data", "provider-overrides.json")
 PROVIDER_DISCOVERY_TTL = 7 * 24 * 60 * 60
 PROVIDER_DISCOVERY_TIMEOUT = 5
 PROVIDER_DISCOVERY_VERSION = 2
+PROVIDER_FAVICON_TTL = 30 * 24 * 60 * 60
+PROVIDER_FAVICON_MAX_BYTES = 256 * 1024
 _provider_overrides_lock = threading.RLock()
 _provider_overrides_cache: dict[str, dict] | None = None
 _provider_overrides_mtime: float | None = None
 _provider_discovery_executor = ThreadPoolExecutor(max_workers=2)
 _provider_discovery_in_flight: set[int] = set()
+_provider_favicon_in_flight: set[int] = set()
+PROVIDER_FAVICON_DIR = os.path.join("data", "provider-favicons")
 
 
 def _load_provider_overrides() -> dict[str, dict]:
@@ -270,6 +274,85 @@ def _is_http_url(value: str | None) -> bool:
         return False
     parsed = urlparse(value)
     return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+
+def _provider_favicon_path(asn: int) -> str:
+    return os.path.join(PROVIDER_FAVICON_DIR, f"{asn}.bin")
+
+
+def _provider_favicon_url(asn: int) -> str | None:
+    return f"/api/provider-favicon/{asn}" if os.path.isfile(_provider_favicon_path(asn)) else None
+
+
+def _favicon_cache_fresh(value: dict) -> bool:
+    try:
+        return time.time() - float(value.get("favicon_checked_at", 0)) < PROVIDER_FAVICON_TTL
+    except (TypeError, ValueError):
+        return False
+
+
+def _save_provider_favicon(
+    asn: int, site_url: str, source_url: str | None = None
+) -> tuple[bool, str | None]:
+    candidates = [source_url] if _is_http_url(source_url) else []
+    candidates.append(urljoin(site_url.rstrip("/") + "/", "favicon.ico"))
+    for candidate in candidates:
+        try:
+            response = _req.get(
+                candidate,
+                headers={"User-Agent": "ip-lookup-provider-favicon/1.0"},
+                timeout=PROVIDER_DISCOVERY_TIMEOUT,
+            )
+            content_type = response.headers.get("Content-Type", "").split(";")[0].lower()
+            if not response.ok or len(response.content) > PROVIDER_FAVICON_MAX_BYTES:
+                continue
+            if not (content_type.startswith("image/") or content_type == "application/octet-stream"):
+                continue
+            os.makedirs(PROVIDER_FAVICON_DIR, exist_ok=True)
+            temporary_path = _provider_favicon_path(asn) + ".tmp"
+            with open(temporary_path, "wb") as file:
+                file.write(response.content)
+            os.replace(temporary_path, _provider_favicon_path(asn))
+            return True, content_type
+        except (_req.RequestException, OSError):
+            continue
+    return False, None
+
+
+def _schedule_provider_favicon(asn: int, site_url: str, source_url: str | None = None) -> None:
+    with _provider_overrides_lock:
+        if asn in _provider_favicon_in_flight:
+            return
+        override = _load_provider_overrides().get(f"asn:{asn}", {})
+        if isinstance(override, dict) and _favicon_cache_fresh(override):
+            return
+        _provider_favicon_in_flight.add(asn)
+
+    def run() -> None:
+        try:
+            saved, content_type = _save_provider_favicon(asn, site_url, source_url)
+            with _provider_overrides_lock:
+                overrides = dict(_load_provider_overrides())
+                current = overrides.get(f"asn:{asn}", {})
+                if isinstance(current, dict):
+                    overrides[f"asn:{asn}"] = {
+                        **current,
+                        "favicon_checked_at": time.time(),
+                        **({"favicon_status": "saved"} if saved else {"favicon_status": "not_found"}),
+                        **({"favicon_content_type": content_type} if content_type else {}),
+                    }
+                    os.makedirs(os.path.dirname(PROVIDER_OVERRIDES_PATH), exist_ok=True)
+                    temporary_path = PROVIDER_OVERRIDES_PATH + ".tmp"
+                    with open(temporary_path, "w", encoding="utf-8") as file:
+                        _json.dump(overrides, file, ensure_ascii=False, indent=2)
+                        file.write("\n")
+                    os.replace(temporary_path, PROVIDER_OVERRIDES_PATH)
+                    _load_provider_overrides()
+        finally:
+            with _provider_overrides_lock:
+                _provider_favicon_in_flight.discard(asn)
+
+    _provider_discovery_executor.submit(run)
 
 
 def _provider_discovery_fresh(value: dict) -> bool:
@@ -380,6 +463,8 @@ def _discover_provider_site(asn: int, organization: str | None) -> None:
                 "asn=%s organization=%r status=%s source=%s http_status=%s url=%r",
                 asn, organization, status, source, http_status, site,
             )
+        if site:
+            _schedule_provider_favicon(asn, site)
 
 
 def _schedule_provider_discovery(asn: int, organization: str | None) -> None:
@@ -444,8 +529,13 @@ def lookup_ip(ip: str) -> dict:
                 result["asn_org"], result["rdns"], result["asn"]
             )
             override = _provider_override(result["asn_org"], result["asn"])
-            if _is_http_url(override.get("favicon")):
-                result["provider_favicon"] = override["favicon"]
+            if result["provider_url"]:
+                result["provider_favicon"] = _provider_favicon_url(result["asn"])
+                _schedule_provider_favicon(
+                    result["asn"],
+                    result["provider_url"],
+                    override.get("favicon"),
+                )
     except Exception as e:
         result["asn_error"] = str(e)
     try:
@@ -508,6 +598,19 @@ def api_config():
         "ipv4_endpoint": os.environ.get("IPV4_ENDPOINT", "/api/myip"),
         "ipv6_endpoint": os.environ.get("IPV6_ENDPOINT", "/api/myip"),
     })
+
+
+@app.route("/api/provider-favicon/<int:asn>")
+def api_provider_favicon(asn: int):
+    path = _provider_favicon_path(asn)
+    if not os.path.isfile(path):
+        return jsonify({"error": "Favicon ще не збережено"}), 404
+    override = _provider_override(None, asn)
+    return send_file(
+        path,
+        mimetype=override.get("favicon_content_type", "application/octet-stream"),
+        max_age=PROVIDER_FAVICON_TTL,
+    )
 
 
 def _provider_admin_authorized() -> bool:

@@ -32,10 +32,12 @@ function providerHtml(d) {
 
   try {
     const providerUrl = new URL(d.provider_url);
-    const faviconUrl = d.provider_favicon ||
-      `https://www.google.com/s2/favicons?domain=${encodeURIComponent(providerUrl.hostname)}&sz=32`;
+    const faviconUrl = d.provider_favicon;
+    const favicon = faviconUrl
+      ? `<img class="provider-favicon" src="${faviconUrl}" width="16" height="16" alt="">`
+      : '';
     return `<a class="provider-link" href="${providerUrl.href}" target="_blank" rel="noopener noreferrer">
-      <img class="provider-favicon" src="${faviconUrl}" width="16" height="16" alt="">
+      ${favicon}
       <span>${d.asn_org}</span>
     </a>`;
   } catch {
