@@ -835,6 +835,14 @@
           події записуються у <code style="font-family:var(--mono);font-size:12px">log/provider-discovery.log</code>.
           Ручні відповідності мають найвищий пріоритет.</span>
       </div>
+      <div class="info-box">
+        <span class="icon">▣</span>
+        <span>Favicon завантажується окремо у фоні та зберігається локально в
+        <code style="font-family:var(--mono);font-size:12px">data/provider-favicons/</code>.
+        Оновлення виконується раз на 30 днів, а браузер отримує іконку через
+        <code style="font-family:var(--mono);font-size:12px">/api/provider-favicon/{asn}</code>.
+        Це прибирає залежність інтерфейсу від зовнішнього favicon-сервісу.</span>
+      </div>
       <div class="example-block">
         <div class="example-label"><span class="dot" style="color:var(--accent)"></span> Ручна відповідність за ASN</div>
         <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="hl-url">PUT /api/provider-overrides</span>
@@ -1014,7 +1022,7 @@
   <span class="hl-key">"asn"</span>: <span class="hl-num">15169</span>,
   <span class="hl-key">"asn_org"</span>: <span class="hl-str">"GOOGLE"</span>,
   <span class="hl-key">"provider_url"</span>: <span class="hl-str">"https://google.com"</span>,
-  <span class="hl-key">"provider_favicon"</span>: <span class="hl-str">"https://www.google.com/s2/favicons?domain=google.com&amp;sz=32"</span>,
+  <span class="hl-key">"provider_favicon"</span>: <span class="hl-str">"/api/provider-favicon/15169"</span>,
   <span class="hl-key">"version"</span>: <span class="hl-num">4</span>,
   <span class="hl-key">"is_private"</span>: <span class="hl-bool">false</span>,
   <span class="hl-key">"is_loopback"</span>: <span class="hl-bool">false</span>
