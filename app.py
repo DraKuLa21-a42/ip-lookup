@@ -21,7 +21,6 @@ import json as _json
 
 import dns.resolver
 import dns.message
-import dns.query
 import dns.rdatatype
 
 from dotenv import load_dotenv
@@ -817,7 +816,6 @@ def build_dns_resolver(
                 nameserver = dns.nameserver.DoHNameserver(
                     f"https://{url_host}:{resolver_port}/dns-query",
                     bootstrap_address=address,
-                    http_version=dns.query.HTTPVersion.H2,
                 )
             else:
                 nameserver = dns.nameserver.DoQNameserver(
