@@ -610,154 +610,48 @@ header {
 }
 
 .dns-resolver {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
   width: 100%;
   max-width: 640px;
-  margin: 0 0 28px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: linear-gradient(110deg, rgba(17, 19, 24, .96), rgba(17, 19, 24, .74));
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+  margin: 0 0 24px;
 }
 
-.dns-resolver[open] {
-  border-color: rgba(0, 229, 255, .3);
-}
-
-.dns-resolver-summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 48px;
-  padding: 0 15px;
-  list-style: none;
-  cursor: pointer;
-  user-select: none;
-}
-
-.dns-resolver-summary::-webkit-details-marker {
-  display: none;
-}
-
-.dns-resolver-summary-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--text);
-  font-family: var(--sans);
-  font-size: .8rem;
-  font-weight: 700;
-}
-
-.dns-resolver-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--muted);
-  box-shadow: 0 0 0 3px rgba(100, 116, 139, .12);
-}
-
-.dns-resolver[open] .dns-resolver-dot {
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0, 229, 255, .12);
-}
-
-.dns-resolver-summary-value {
-  overflow: hidden;
-  margin-left: auto;
-  color: var(--muted);
-  font-size: .7rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dns-resolver-chevron {
-  color: var(--muted);
-  font-size: 1rem;
-  transition: transform .18s ease, color .18s ease;
-}
-
-.dns-resolver[open] .dns-resolver-chevron {
-  color: var(--accent);
-  transform: rotate(180deg);
-}
-
-.dns-resolver-content {
+.dns-resolver label {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 190px 100px;
-  align-items: end;
-  gap: 12px;
-  padding: 0 15px 15px;
-}
-
-.dns-resolver-content label {
-  display: grid;
-  gap: 7px;
-  min-width: 0;
+  gap: 5px;
   color: var(--muted);
-  font-size: .68rem;
-  letter-spacing: .04em;
+  font-size: .72rem;
 }
 
-.dns-resolver-content input,
-.dns-resolver-content select {
-  width: 100%;
-  min-width: 0;
-  height: 38px;
-  padding: 0 10px;
+.dns-resolver label:first-child {
+  flex: 1 1 220px;
+}
+
+.dns-resolver input,
+.dns-resolver select {
+  min-width: 90px;
+  padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 6px;
   outline: none;
-  background: rgba(10, 12, 16, .72);
+  background: var(--surface);
   color: var(--text);
   font-family: var(--mono);
-  font-size: .75rem;
-  transition: border-color .15s, box-shadow .15s;
 }
 
-.dns-resolver-content input:focus,
-.dns-resolver-content select:focus {
+.dns-resolver input:focus,
+.dns-resolver select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0, 229, 255, .08);
 }
 
 .dns-resolver-hint {
-  grid-column: 1 / -1;
+  flex: 1 0 100%;
   color: var(--muted);
   font-size: .7rem;
   line-height: 1.5;
-}
-
-.dns-resolver-hint code {
-  color: var(--accent);
-  font-family: var(--mono);
-}
-
-@media (max-width: 560px) {
-  .dns-resolver-content {
-    grid-template-columns: minmax(0, 1fr) 90px;
-    gap: 10px;
-  }
-
-  .dns-resolver-host {
-    grid-column: 1 / -1;
-  }
-
-  .dns-resolver-content > label:nth-child(2) {
-    grid-column: 1;
-  }
-
-  .dns-resolver-port {
-    grid-column: 2;
-  }
-
-  .dns-resolver-summary {
-    gap: 8px;
-    padding: 0 11px;
-  }
-
-  .dns-resolver-summary-value {
-    font-size: .64rem;
-  }
 }
 
 /* ── DNS result card ─────────────────────────────────────────────────────── */
