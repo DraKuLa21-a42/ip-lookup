@@ -792,39 +792,36 @@ def build_dns_resolver(
     resolved, error = _resolve_dns_server(resolver_host, is_user_supplied)
     if error:
         return None, None, error
+    address = resolved[0]
     resolver_port = port or (
         DNS_DEFAULT_PORTS[transport]
         if is_user_supplied or transport not in ("udp", "tcp")
         else DNS_RESOLVER_PORT
     )
     try:
-        nameservers = []
-        for address in resolved:
-            if transport in ("udp", "tcp"):
-                nameserver = dns.nameserver.Do53Nameserver(address, resolver_port)
-            elif transport == "dot":
-                nameserver = dns.nameserver.DoTNameserver(
-                    address,
-                    resolver_port,
-                    hostname=resolver_host if not _is_ip_address(resolver_host) else None,
-                )
-            elif transport == "doh":
-                url_host = resolver_host
-                if ":" in url_host and not url_host.startswith("["):
-                    url_host = f"[{url_host}]"
-                nameserver = dns.nameserver.DoHNameserver(
-                    f"https://{url_host}:{resolver_port}/dns-query",
-                    bootstrap_address=address,
-                )
-            else:
-                nameserver = dns.nameserver.DoQNameserver(
-                    address,
-                    resolver_port,
-                    server_hostname=resolver_host if not _is_ip_address(resolver_host) else None,
-                )
-            nameservers.append(nameserver)
+        if transport in ("udp", "tcp"):
+            nameserver = dns.nameserver.Do53Nameserver(address, resolver_port)
+        elif transport == "dot":
+            nameserver = dns.nameserver.DoTNameserver(
+                address, resolver_port,
+                hostname=resolver_host if not _is_ip_address(resolver_host) else None,
+            )
+        elif transport == "doh":
+            url_host = resolver_host
+            if ":" in url_host and not url_host.startswith("["):
+                url_host = f"[{url_host}]"
+            nameserver = dns.nameserver.DoHNameserver(
+                f"https://{url_host}:{resolver_port}/dns-query",
+                bootstrap_address=address,
+            )
+        else:
+            nameserver = dns.nameserver.DoQNameserver(
+                address,
+                resolver_port,
+                server_hostname=resolver_host if not _is_ip_address(resolver_host) else None,
+            )
         resolver = dns.resolver.Resolver(configure=False)
-        resolver.nameservers = nameservers
+        resolver.nameservers = [nameserver]
         resolver.lifetime = 5
     except (ValueError, dns.exception.DNSException) as exc:
         return None, None, str(exc)
@@ -840,20 +837,6 @@ def _is_ip_address(host: str) -> bool:
         return False
 
 
-def _dns_timeout_message(transport: str) -> str:
-    if transport == "doq":
-        return (
-            "Час очікування DoQ вичерпано. Перевірте, чи дозволений вихідний "
-            "UDP-порт 853 і чи підтримує цей резолвер DNS-over-QUIC."
-        )
-    if transport == "doh":
-        return (
-            "Час очікування DoH вичерпано. Перевірте доступність HTTPS "
-            "до резолвера на вказаному порту."
-        )
-    return "Час очікування DNS-запиту вичерпано."
-
-
 def query_dns(
     domain: str, rtype: str, resolver: dns.resolver.Resolver, transport: str
 ) -> dict:
@@ -866,8 +849,8 @@ def query_dns(
         pass
     except dns.resolver.NXDOMAIN:
         result["error"] = "Домен не існує"
-    except dns.exception.Timeout:
-        result["error"] = _dns_timeout_message(transport)
+    except dns.resolver.Timeout:
+        result["error"] = "Timeout"
     except Exception as e:
         result["error"] = str(e)
     return result
@@ -889,23 +872,13 @@ def check_dnssec(
         except Exception:
             result["records"].append("DS: не знайдено в батьківській зоні")
         req = dns.message.make_query(domain, dns.rdatatype.A, want_dnssec=True)
-        response_error = None
-        for nameserver in resolver.nameservers:
-            try:
-                resp = nameserver.query(
-                    req,
-                    timeout=5,
-                    source=None,
-                    source_port=0,
-                    max_size=transport == "tcp",
-                )
-                break
-            except Exception as exc:
-                response_error = exc
-        else:
-            if response_error:
-                raise response_error
-            raise RuntimeError("DNS resolver has no configured nameservers")
+        resp = resolver.nameservers[0].query(
+            req,
+            timeout=5,
+            source=None,
+            source_port=0,
+            max_size=transport == "tcp",
+        )
         has_rrsig = any(
             r.rdtype == dns.rdatatype.RRSIG
             for rrset in resp.answer
@@ -922,8 +895,6 @@ def check_dnssec(
     except dns.resolver.NoAnswer:
         result["records"].append("DNSKEY: не знайдено")
         result["records"].append("Статус: ✗ DNSSEC не налаштовано")
-    except dns.exception.Timeout:
-        result["error"] = _dns_timeout_message(transport)
     except Exception as e:
         result["error"] = str(e)
     return result
@@ -964,24 +935,14 @@ def api_dns():
         types_to_query = [rtype]
     else:
         types_to_query = DNS_RECORD_TYPES
-    with ThreadPoolExecutor(max_workers=min(len(types_to_query) + 1, 10)) as executor:
-        queries = [
-            executor.submit(query_dns, domain, record_type, resolver, transport)
-            for record_type in types_to_query
-        ]
-        dnssec_query = (
-            executor.submit(check_dnssec, domain, resolver, transport)
-            if not rtype else None
-        )
-        answers = [future.result() for future in queries]
-        results = [
-            answer for answer in answers
-            if answer.get("records") or answer.get("error")
-        ]
-        dnssec_result = dnssec_query.result() if dnssec_query else None
+    results = []
+    for t in types_to_query:
+        r = query_dns(domain, t, resolver, transport)
+        if r.get("records") or r.get("error"):
+            results.append(r)
     response = {"domain": domain, "results": results}
-    if dnssec_result is not None:
-        response["dnssec"] = dnssec_result
+    if not rtype:
+        response["dnssec"] = check_dnssec(domain, resolver, transport)
     response["resolver"] = resolver_details
     return jsonify(response)
 
