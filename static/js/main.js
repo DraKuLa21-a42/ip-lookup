@@ -78,7 +78,7 @@ window.switchTab = (tab) => {
     document.getElementById('tab-' + t).classList.toggle('active', t === tab)
   );
   document.getElementById('dns-types').style.display = tab === 'dns' ? 'flex' : 'none';
-  document.getElementById('dns-resolver').style.display = tab === 'dns' ? 'flex' : 'none';
+  document.getElementById('dns-resolver').style.display = tab === 'dns' ? 'block' : 'none';
   document.getElementById('ssl-panel').style.display = tab === 'ssl' ? 'block' : 'none';
   document.getElementById('net-panel').style.display = tab === 'net' ? 'block' : 'none';
   document.getElementById('whois-panel').style.display = tab === 'whois' ? 'block' : 'none';
@@ -161,6 +161,27 @@ fetchWithRetry('/api/myip')
 const params = new URLSearchParams(location.search);
 const tab = params.get('tab');
 const q = params.get('q');
+const dnsResolver = document.getElementById('dns-resolver');
+const dnsResolverSummary = document.getElementById('dns-resolver-summary');
+const dnsResolverHostInput = document.getElementById('dns-resolver-host');
+const dnsTransportSelect = document.getElementById('dns-transport');
+const dnsResolverPortInput = document.getElementById('dns-resolver-port');
+
+function updateDnsResolverSummary() {
+  const host = dnsResolverHostInput.value.trim();
+  const transport = dnsTransportSelect.value.toUpperCase();
+  const port = dnsResolverPortInput.value.trim();
+  dnsResolverSummary.textContent = host
+    ? `${host} · ${transport}${port ? `:${port}` : ''}`
+    : `За замовчуванням · ${transport}${port ? `:${port}` : ''}`;
+}
+
+[dnsResolverHostInput, dnsTransportSelect, dnsResolverPortInput].forEach(input =>
+  input.addEventListener('input', updateDnsResolverSummary)
+);
+[dnsTransportSelect, dnsResolverPortInput].forEach(input =>
+  input.addEventListener('change', updateDnsResolverSummary)
+);
 
 if (tab) switchTab(tab);
 
@@ -168,10 +189,14 @@ if (tab === 'dns' && params.get('type')) {
   selectType(params.get('type'));
 }
 if (tab === 'dns') {
-  if (params.get('resolver')) document.getElementById('dns-resolver-host').value = params.get('resolver');
-  if (params.get('transport')) document.getElementById('dns-transport').value = params.get('transport');
-  if (params.get('port')) document.getElementById('dns-resolver-port').value = params.get('port');
+  if (params.get('resolver')) dnsResolverHostInput.value = params.get('resolver');
+  if (params.get('transport')) dnsTransportSelect.value = params.get('transport');
+  if (params.get('port')) dnsResolverPortInput.value = params.get('port');
+  dnsResolver.open = Boolean(
+    params.get('resolver') || params.get('transport') || params.get('port')
+  );
 }
+updateDnsResolverSummary();
 if (tab === 'ssl' && params.get('port')) {
   document.getElementById('ssl-port').value = params.get('port');
 }
