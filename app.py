@@ -21,7 +21,6 @@ import json as _json
 
 import dns.resolver
 import dns.message
-import dns.query
 import dns.rdatatype
 
 from dotenv import load_dotenv
@@ -43,10 +42,9 @@ if not provider_discovery_logger.handlers:
 DNS_RESOLVER_HOST = os.environ.get("DNS_RESOLVER_HOST", "8.8.8.8")
 DNS_RESOLVER_PORT = int(os.environ.get("DNS_RESOLVER_PORT", 53))
 
-custom_resolver = dns.resolver.Resolver(configure=False)
-custom_resolver.nameservers = [DNS_RESOLVER_HOST]
-custom_resolver.port = DNS_RESOLVER_PORT
-custom_resolver.lifetime = 5
+DNS_TRANSPORTS = {"udp", "tcp", "dot", "doh", "doq"}
+DNS_DEFAULT_PORTS = {"udp": 53, "tcp": 53, "dot": 853, "doh": 443, "doq": 853}
+DNS_PRIVATE_RESOLVER_ERROR = "Дозволені лише публічні адреси DNS-резолвера"
 # ─────────────────────────────────────────────────────────────────────────────
 
 app = Flask(__name__)
@@ -758,10 +756,93 @@ DNS_RECORD_TYPES = [
 ]
 
 
-def query_dns(domain: str, rtype: str) -> dict:
+def _resolve_dns_server(host: str, public_only: bool) -> tuple[list[str] | None, str | None]:
+    host = host.strip()
+    if host.startswith("[") and host.endswith("]"):
+        host = host[1:-1]
+    try:
+        addresses = [ipaddress.ip_address(host).compressed]
+    except ValueError:
+        if not _HOST_RE.fullmatch(host):
+            return None, "Недопустимі символи в адресі резолвера"
+        try:
+            infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+            addresses = list(dict.fromkeys(info[4][0] for info in infos))
+        except socket.gaierror:
+            return None, f"Не вдалось резолвити резолвер: {host}"
+    if not addresses:
+        return None, f"Не вдалось резолвити резолвер: {host}"
+    if public_only:
+        for address in addresses:
+            if is_blocked_ip(address):
+                return None, DNS_PRIVATE_RESOLVER_ERROR
+    return addresses, None
+
+
+def build_dns_resolver(
+    host: str | None = None, transport: str = "udp", port: int | None = None
+) -> tuple[dns.resolver.Resolver | None, dict | None, str | None]:
+    transport = transport.lower()
+    if transport not in DNS_TRANSPORTS:
+        return None, None, "Невідомий транспорт DNS"
+    resolver_host = (host or DNS_RESOLVER_HOST).strip()
+    is_user_supplied = bool(host and host.strip())
+    if not resolver_host:
+        return None, None, "Адресу DNS-резолвера не вказано"
+    resolved, error = _resolve_dns_server(resolver_host, is_user_supplied)
+    if error:
+        return None, None, error
+    address = resolved[0]
+    resolver_port = port or (
+        DNS_DEFAULT_PORTS[transport]
+        if is_user_supplied or transport not in ("udp", "tcp")
+        else DNS_RESOLVER_PORT
+    )
+    try:
+        if transport in ("udp", "tcp"):
+            nameserver = dns.nameserver.Do53Nameserver(address, resolver_port)
+        elif transport == "dot":
+            nameserver = dns.nameserver.DoTNameserver(
+                address, resolver_port,
+                hostname=resolver_host if not _is_ip_address(resolver_host) else None,
+            )
+        elif transport == "doh":
+            url_host = resolver_host
+            if ":" in url_host and not url_host.startswith("["):
+                url_host = f"[{url_host}]"
+            nameserver = dns.nameserver.DoHNameserver(
+                f"https://{url_host}:{resolver_port}/dns-query",
+                bootstrap_address=address,
+            )
+        else:
+            nameserver = dns.nameserver.DoQNameserver(
+                address,
+                resolver_port,
+                server_hostname=resolver_host if not _is_ip_address(resolver_host) else None,
+            )
+        resolver = dns.resolver.Resolver(configure=False)
+        resolver.nameservers = [nameserver]
+        resolver.lifetime = 5
+    except (ValueError, dns.exception.DNSException) as exc:
+        return None, None, str(exc)
+    details = {"host": resolver_host, "transport": transport, "port": resolver_port}
+    return resolver, details, None
+
+
+def _is_ip_address(host: str) -> bool:
+    try:
+        ipaddress.ip_address(host.strip("[]"))
+        return True
+    except ValueError:
+        return False
+
+
+def query_dns(
+    domain: str, rtype: str, resolver: dns.resolver.Resolver, transport: str
+) -> dict:
     result = {"type": rtype, "records": []}
     try:
-        answers = custom_resolver.resolve(domain, rtype)
+        answers = resolver.resolve(domain, rtype, tcp=transport == "tcp")
         for r in answers:
             result["records"].append(r.to_text())
     except dns.resolver.NoAnswer:
@@ -775,21 +856,29 @@ def query_dns(domain: str, rtype: str) -> dict:
     return result
 
 
-def check_dnssec(domain: str) -> dict:
+def check_dnssec(
+    domain: str, resolver: dns.resolver.Resolver, transport: str
+) -> dict:
     result = {"type": "DNSSEC", "records": []}
     signed = False
     try:
-        dnskey_ans = custom_resolver.resolve(domain, 'DNSKEY')
+        dnskey_ans = resolver.resolve(domain, 'DNSKEY', tcp=transport == "tcp")
         key_count = len(list(dnskey_ans))
         result["records"].append(f"DNSKEY: знайдено {key_count} ключ(ів)")
         try:
-            ds_ans = custom_resolver.resolve(domain, 'DS')
+            ds_ans = resolver.resolve(domain, 'DS', tcp=transport == "tcp")
             result["records"].append(f"DS: знайдено {len(list(ds_ans))} запис(ів) у батьківській зоні")
             signed = True
         except Exception:
             result["records"].append("DS: не знайдено в батьківській зоні")
         req = dns.message.make_query(domain, dns.rdatatype.A, want_dnssec=True)
-        resp = dns.query.udp(req, DNS_RESOLVER_HOST, port=DNS_RESOLVER_PORT, timeout=5)
+        resp = resolver.nameservers[0].query(
+            req,
+            timeout=5,
+            source=None,
+            source_port=0,
+            max_size=transport == "tcp",
+        )
         has_rrsig = any(
             r.rdtype == dns.rdatatype.RRSIG
             for rrset in resp.answer
@@ -816,27 +905,45 @@ def check_dnssec(domain: str) -> dict:
 def api_dns():
     domain = sanitize_host(request.args.get("domain", ""))
     rtype  = request.args.get("type", "").strip().upper()
+    resolver_host = request.args.get("resolver", "").strip()
+    transport = request.args.get("transport", "udp").strip().lower()
+    raw_port = request.args.get("port", "").strip()
     if not domain:
         return jsonify({"error": "Параметр domain не вказано"}), 400
     if not _HOST_RE.match(domain):
         return jsonify({"error": "Недопустимі символи в імені домену"}), 400
+    if rtype and rtype != "DNSSEC" and rtype not in DNS_RECORD_TYPES:
+        return jsonify({"error": f"Невідомий тип запису: {rtype}"}), 400
+    port = None
+    if raw_port:
+        try:
+            port = int(raw_port)
+            if not 1 <= port <= 65535:
+                raise ValueError
+        except ValueError:
+            return jsonify({"error": "Невалідний порт DNS-резолвера"}), 400
+    resolver, resolver_details, error = build_dns_resolver(
+        resolver_host or None, transport, port
+    )
+    if error:
+        status = 403 if error == DNS_PRIVATE_RESOLVER_ERROR else 400
+        return jsonify({"error": error}), status
     if rtype == 'DNSSEC':
-        results = [check_dnssec(domain)]
-        return jsonify({"domain": domain, "results": results})
+        results = [check_dnssec(domain, resolver, transport)]
+        return jsonify({"domain": domain, "results": results, "resolver": resolver_details})
     if rtype:
-        if rtype not in DNS_RECORD_TYPES:
-            return jsonify({"error": f"Невідомий тип запису: {rtype}"}), 400
         types_to_query = [rtype]
     else:
         types_to_query = DNS_RECORD_TYPES
     results = []
     for t in types_to_query:
-        r = query_dns(domain, t)
+        r = query_dns(domain, t, resolver, transport)
         if r.get("records") or r.get("error"):
             results.append(r)
     response = {"domain": domain, "results": results}
     if not rtype:
-        response["dnssec"] = check_dnssec(domain)
+        response["dnssec"] = check_dnssec(domain, resolver, transport)
+    response["resolver"] = resolver_details
     return jsonify(response)
 
 

@@ -81,6 +81,28 @@
     <button class="type-btn" onclick="selectType('AFSDB')" id="dt-AFSDB">AFSDB</button>
   </div>
 
+  <div class="dns-resolver" id="dns-resolver" style="display:none">
+    <label>
+      DNS-резолвер
+      <input id="dns-resolver-host" type="text" placeholder="8.8.8.8 або dns.google" autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false">
+    </label>
+    <label>
+      Транспорт
+      <select id="dns-transport">
+        <option value="udp">UDP</option>
+        <option value="tcp">TCP</option>
+        <option value="dot">DoT</option>
+        <option value="doh">DoH</option>
+        <option value="doq">DoQ</option>
+      </select>
+    </label>
+    <label>
+      Порт
+      <input id="dns-resolver-port" type="number" min="1" max="65535" placeholder="авто">
+    </label>
+    <div class="dns-resolver-hint">Порожнє поле адреси використовує DNS-сервер за замовчуванням. Для DoH використовується шлях /dns-query. Кастомний резолвер має бути публічним.</div>
+  </div>
+
   <!-- ── SSL panel ── -->
   <div id="ssl-panel" style="display:none">
     <div class="ssl-port-hint">
@@ -128,7 +150,7 @@
   <div id="result"></div>
 
   <!-- ── Scripts (ES modules) ── -->
-  <script type="module" src="/static/js/main.js?v=126"></script>
+  <script type="module" src="/static/js/main.js?v=127"></script>
 
 </body>
 
