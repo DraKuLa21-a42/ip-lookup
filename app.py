@@ -6,6 +6,7 @@ import os
 import re
 import ssl
 import datetime
+import hmac
 import logging
 import subprocess
 import time
@@ -77,30 +78,39 @@ _HOST_RE = re.compile(r'^[a-zA-Z0-9.\-:\[\]]+$')
 def is_blocked_ip(ip_str: str) -> bool:
     try:
         addr = ipaddress.ip_address(ip_str)
-        return any(addr in net for net in BLOCKED_NETWORKS)
+        if isinstance(addr, ipaddress.IPv6Address) and addr.ipv4_mapped:
+            return is_blocked_ip(str(addr.ipv4_mapped))
+        return not addr.is_global or any(addr in net for net in BLOCKED_NETWORKS)
     except ValueError:
         return False
 
 
-def resolve_and_validate(host: str) -> tuple[str | None, str | None]:
+def _resolve_host_ips(host: str) -> tuple[list[str] | None, str | None]:
     if not _HOST_RE.match(host):
         return None, "Недопустимі символи в імені хоста"
     try:
         addr = ipaddress.ip_address(host)
         if is_blocked_ip(host):
             return None, "Приватні та зарезервовані адреси заборонені"
-        return host, None
+        return [addr.compressed], None
     except ValueError:
         pass
     try:
-        infos = socket.getaddrinfo(host, None)
-        for info in infos:
-            ip = info[4][0]
+        infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+        ips = list(dict.fromkeys(info[4][0] for info in infos))
+        if not ips:
+            return None, f"Не вдалось резолвити хост: {host}"
+        for ip in ips:
             if is_blocked_ip(ip):
                 return None, f"Домен резолвиться у заборонену адресу ({ip})"
-        return infos[0][4][0], None
+        return ips, None
     except socket.gaierror:
         return None, f"Не вдалось резолвити хост: {host}"
+
+
+def resolve_and_validate(host: str) -> tuple[str | None, str | None]:
+    ips, err = _resolve_host_ips(host)
+    return (ips[0] if ips else None), err
 
 
 def sanitize_host(raw: str) -> str:
@@ -548,18 +558,18 @@ def lookup_ip(ip: str) -> dict:
     return result
 
 
-def resolve_domain(domain: str) -> dict:
+def resolve_domain(domain: str, resolved_ips: list[str] | None = None) -> dict:
     result = {"domain": domain, "ips": []}
-    try:
-        infos = socket.getaddrinfo(domain, None)
-        seen: list[str] = []
-        for info in infos:
-            ip = info[4][0]
-            if ip not in seen:
-                seen.append(ip)
-        result["ips"] = seen
-    except socket.gaierror as e:
-        result["error"] = str(e)
+    if resolved_ips is None:
+        try:
+            infos = socket.getaddrinfo(domain, None, type=socket.SOCK_STREAM)
+            resolved_ips = list(dict.fromkeys(info[4][0] for info in infos))
+        except socket.gaierror as e:
+            result["error"] = str(e)
+            return result
+    result["ips"] = list(dict.fromkeys(
+        ip for ip in resolved_ips if not is_blocked_ip(ip)
+    ))
     return result
 
 
@@ -617,7 +627,10 @@ def _provider_admin_authorized() -> bool:
     configured_token = os.environ.get("PROVIDER_ADMIN_TOKEN")
     supplied_token = request.headers.get("X-Provider-Admin-Token")
     return bool(configured_token and supplied_token
-                and supplied_token == configured_token)
+                and hmac.compare_digest(
+                    supplied_token.encode("utf-8"),
+                    configured_token.encode("utf-8"),
+                ))
 
 
 @app.route("/api/provider-overrides", methods=["GET", "PUT", "DELETE"])
@@ -672,10 +685,10 @@ def api_resolve():
     domain = sanitize_host(request.args.get("domain", ""))
     if not domain:
         return jsonify({"error": "Параметр domain не вказано"}), 400
-    _, err = resolve_and_validate(domain)
+    resolved_ips, err = _resolve_host_ips(domain)
     if err:
         return jsonify({"error": err}), 403
-    data = resolve_domain(domain)
+    data = resolve_domain(domain, resolved_ips)
     enriched = []
     for ip in data.get("ips", []):
         info = lookup_ip(ip)
@@ -707,10 +720,10 @@ def api_query():
     if not q:
         return jsonify({"error": "Параметр q не вказано"}), 400
     if is_domain(q):
-        _, err = resolve_and_validate(q)
+        resolved_ips, err = _resolve_host_ips(q)
         if err:
             return jsonify({"error": err}), 403
-        return _resolve_and_enrich(q)
+        return _resolve_and_enrich(q, resolved_ips)
     else:
         try:
             ipaddress.ip_address(q)
@@ -723,8 +736,8 @@ def api_query():
         return jsonify(data)
 
 
-def _resolve_and_enrich(domain: str):
-    data = resolve_domain(domain)
+def _resolve_and_enrich(domain: str, resolved_ips: list[str] | None = None):
+    data = resolve_domain(domain, resolved_ips)
     enriched = []
     for ip in data.get("ips", []):
         info = lookup_ip(ip)
@@ -833,8 +846,11 @@ def _parse_cert_date(s: str) -> datetime.datetime:
     return datetime.datetime.strptime(s, '%b %d %H:%M:%S %Y %Z')
 
 
-def check_ssl(host: str, port: int = 443) -> dict:
-    _, err = resolve_and_validate(host)
+def check_ssl(host: str, port: int = 443, resolved_ip: str | None = None) -> dict:
+    if resolved_ip is None:
+        resolved_ip, err = resolve_and_validate(host)
+    else:
+        err = None
     if err:
         return {"host": host, "port": port, "valid": False, "error": err}
 
@@ -844,7 +860,7 @@ def check_ssl(host: str, port: int = 443) -> dict:
         ctx_raw.check_hostname = False
         ctx_raw.verify_mode = ssl.CERT_NONE  # тільки NONE гарантує що не впаде
 
-        conn = socket.create_connection((host, port), timeout=10)
+        conn = socket.create_connection((resolved_ip, port), timeout=10)
         with ctx_raw.wrap_socket(conn, server_hostname=host) as s:
             cert_bin = s.getpeercert(binary_form=True)   # завжди є при CERT_NONE
             cipher   = s.cipher()
@@ -866,7 +882,7 @@ def check_ssl(host: str, port: int = 443) -> dict:
         ctx_parse.verify_mode = ssl.CERT_OPTIONAL
         ctx_parse.load_default_certs()
 
-        conn2 = socket.create_connection((host, port), timeout=10)
+        conn2 = socket.create_connection((resolved_ip, port), timeout=10)
         with ctx_parse.wrap_socket(conn2, server_hostname=host) as s2:
             cert = s2.getpeercert(binary_form=False)
     except ssl.SSLError:
@@ -890,7 +906,7 @@ def check_ssl(host: str, port: int = 443) -> dict:
     trust_error = None
     try:
         ctx_v = ssl.create_default_context()
-        conn3 = socket.create_connection((host, port), timeout=10)
+        conn3 = socket.create_connection((resolved_ip, port), timeout=10)
         with ctx_v.wrap_socket(conn3, server_hostname=host):
             pass
     except ssl.SSLCertVerificationError as e:
@@ -962,10 +978,10 @@ def api_ssl():
             raise ValueError
     except ValueError:
         return jsonify({"error": "Невалідний порт"}), 400
-    _, err = resolve_and_validate(host)
+    resolved_ip, err = resolve_and_validate(host)
     if err:
         return jsonify({"error": err}), 403
-    return jsonify(check_ssl(host, port))
+    return jsonify(check_ssl(host, port, resolved_ip))
 
 import subprocess, tempfile, os
 
@@ -1085,10 +1101,14 @@ def _parse_rfc2253(s: str) -> tuple:
 
 # ── Ping ──────────────────────────────────────────────────────────────────────
 
-def do_ping(host: str, count: int = 4) -> dict:
+def do_ping(host: str, count: int = 4, resolved_ip: str | None = None) -> dict:
+    if resolved_ip is None:
+        resolved_ip, err = resolve_and_validate(host)
+        if err:
+            return {"host": host, "success": False, "error": err}
     try:
         proc = subprocess.run(
-            ['ping', '-c', str(count), '-W', '2', host],
+            ['ping', '-c', str(count), '-W', '2', resolved_ip],
             capture_output=True, text=True, timeout=15
         )
         output = proc.stdout
@@ -1117,10 +1137,10 @@ def api_ping():
     count = min(int(request.args.get("count", 4)), 10)
     if not host:
         return jsonify({"error": "Параметр host не вказано"}), 400
-    _, err = resolve_and_validate(host)
+    resolved_ip, err = resolve_and_validate(host)
     if err:
         return jsonify({"error": err}), 403
-    return jsonify(do_ping(host, count))
+    return jsonify(do_ping(host, count, resolved_ip))
 
 
 # ── TCP check ─────────────────────────────────────────────────────────────────
@@ -1134,10 +1154,16 @@ KNOWN_PORTS = {
 }
 
 
-def check_tcp_port(host: str, port: int, timeout: float = 1.5) -> dict:
+def check_tcp_port(
+    host: str, port: int, timeout: float = 1.5, resolved_ip: str | None = None
+) -> dict:
+    if resolved_ip is None:
+        resolved_ip, err = resolve_and_validate(host)
+        if err:
+            return {"host": host, "port": port, "open": False, "error": err}
     start = time.monotonic()
     try:
-        sock = socket.create_connection((host, port), timeout=timeout)
+        sock = socket.create_connection((resolved_ip, port), timeout=timeout)
         ms = round((time.monotonic() - start) * 1000, 2)
         sock.close()
         return {"host": host, "port": port, "open": True, "ms": ms}
@@ -1156,7 +1182,7 @@ def api_tcpcheck():
     ports_param = request.args.get("ports", "").strip()
     if not host:
         return jsonify({"error": "Параметр host не вказано"}), 400
-    _, err = resolve_and_validate(host)
+    resolved_ip, err = resolve_and_validate(host)
     if err:
         return jsonify({"error": err}), 403
     ports: list[int] = []
@@ -1181,7 +1207,7 @@ def api_tcpcheck():
             return jsonify({"error": f"Порт поза допустимим діапазоном (1–65535): {p}"}), 400
 
     def check_one(port: int):
-        r = check_tcp_port(host, port)
+        r = check_tcp_port(host, port, resolved_ip=resolved_ip)
         r["service"] = KNOWN_PORTS.get(port)
         return port, r
 
