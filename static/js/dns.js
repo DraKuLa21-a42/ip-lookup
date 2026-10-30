@@ -3,17 +3,11 @@
  */
 import { loading, errCard } from './ip.js';
 
-export function doDnsLookup(domain, currentDnsType, resultEl, resolverOptions = {}) {
+export function doDnsLookup(domain, currentDnsType, resultEl) {
   if (!domain) return;
   resultEl.innerHTML = loading('DNS запит…');
-  const params = new URLSearchParams({ domain });
-  if (currentDnsType !== 'ALL') params.set('type', currentDnsType);
-  if (resolverOptions.host) params.set('resolver', resolverOptions.host);
-  if (resolverOptions.transport && resolverOptions.transport !== 'udp') {
-    params.set('transport', resolverOptions.transport);
-  }
-  if (resolverOptions.port) params.set('port', resolverOptions.port);
-  fetch('/api/dns?' + params)
+  const typeParam = currentDnsType === 'ALL' ? '' : '&type=' + currentDnsType;
+  fetch('/api/dns?domain=' + encodeURIComponent(domain) + typeParam)
     .then(r => r.json())
     .then(d => renderDns(d, resultEl))
     .catch(err => { resultEl.innerHTML = errCard(err.message); });
@@ -29,10 +23,7 @@ function renderDns(d, resultEl) {
 
   let html = `
     <div class="card" style="margin-bottom:0;border-radius:10px;overflow:visible;background:transparent;border:none">
-      <div style="padding:0 0 10px;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">
-        ${d.domain}
-        ${d.resolver ? `<span style="display:block;margin-top:5px;letter-spacing:normal;text-transform:none">Резолвер: ${d.resolver.host} · ${d.resolver.transport.toUpperCase()}:${d.resolver.port}</span>` : ''}
-      </div>
+      <div style="padding:0 0 10px;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">${d.domain}</div>
     </div>`;
 
   items.forEach(item => {

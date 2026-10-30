@@ -25,14 +25,7 @@ function dispatch() {
   const q = ipInput.value.trim();
   if (!q) return;
 
-  const dnsResolverHost = document.getElementById('dns-resolver-host').value.trim();
-  const dnsTransport = document.getElementById('dns-transport').value;
-  const dnsResolverPort = document.getElementById('dns-resolver-port').value.trim();
-  const dnsParams = new URLSearchParams({ type: currentDnsType });
-  if (dnsResolverHost) dnsParams.set('resolver', dnsResolverHost);
-  if (dnsTransport !== 'udp') dnsParams.set('transport', dnsTransport);
-  if (dnsResolverPort) dnsParams.set('port', dnsResolverPort);
-  const extra = currentTab === 'dns' ? `&${dnsParams}`
+  const extra = currentTab === 'dns' ? `&type=${currentDnsType}`
     : currentTab === 'ssl' ? `&port=${document.getElementById('ssl-port').value.trim() || '443'}`
       : currentTab === 'net' ? `&mode=${currentNetMode}`
         : currentTab === 'whois' ? `&mode=${whoisMode}`
@@ -41,13 +34,7 @@ function dispatch() {
   history.pushState(null, '', `?tab=${currentTab}&q=${encodeURIComponent(q)}${extra}`);
 
   switch (currentTab) {
-    case 'dns':
-      doDnsLookup(q, currentDnsType, resultEl, {
-        host: dnsResolverHost,
-        transport: dnsTransport,
-        port: dnsResolverPort,
-      });
-      break;
+    case 'dns': doDnsLookup(q, currentDnsType, resultEl); break;
     case 'ssl': doSslLookup(q, document.getElementById('ssl-port').value.trim() || '443', resultEl); break;
     case 'net': currentNetMode === 'ping'
       ? doPing(q, document.getElementById('ping-count').value, resultEl)
@@ -78,7 +65,6 @@ window.switchTab = (tab) => {
     document.getElementById('tab-' + t).classList.toggle('active', t === tab)
   );
   document.getElementById('dns-types').style.display = tab === 'dns' ? 'flex' : 'none';
-  document.getElementById('dns-resolver').style.display = tab === 'dns' ? 'flex' : 'none';
   document.getElementById('ssl-panel').style.display = tab === 'ssl' ? 'block' : 'none';
   document.getElementById('net-panel').style.display = tab === 'net' ? 'block' : 'none';
   document.getElementById('whois-panel').style.display = tab === 'whois' ? 'block' : 'none';
@@ -166,11 +152,6 @@ if (tab) switchTab(tab);
 
 if (tab === 'dns' && params.get('type')) {
   selectType(params.get('type'));
-}
-if (tab === 'dns') {
-  if (params.get('resolver')) document.getElementById('dns-resolver-host').value = params.get('resolver');
-  if (params.get('transport')) document.getElementById('dns-transport').value = params.get('transport');
-  if (params.get('port')) document.getElementById('dns-resolver-port').value = params.get('port');
 }
 if (tab === 'ssl' && params.get('port')) {
   document.getElementById('ssl-port').value = params.get('port');

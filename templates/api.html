@@ -1192,28 +1192,12 @@
                 <code style="font-family:var(--mono);font-size:12px">DNSSEC</code> та інші.
               </td>
             </tr>
-            <tr>
-              <td><span class="param-name">resolver</span><span class="param-optional">optional</span></td>
-              <td><span class="param-type">string</span></td>
-              <td class="param-desc">Публічна IP-адреса або hostname кастомного DNS-резолвера. Якщо не вказано, використовується сервер за замовчуванням.</td>
-            </tr>
-            <tr>
-              <td><span class="param-name">transport</span><span class="param-optional">optional</span></td>
-              <td><span class="param-type">string</span></td>
-              <td class="param-desc">Транспорт: <code>udp</code> (за замовчуванням), <code>tcp</code>, <code>dot</code>, <code>doh</code> або <code>doq</code>.</td>
-            </tr>
-            <tr>
-              <td><span class="param-name">port</span><span class="param-optional">optional</span></td>
-              <td><span class="param-type">integer</span></td>
-              <td class="param-desc">Порт резолвера. Типові значення: UDP/TCP 53, DoT/DoQ 853, DoH 443. Для DoH використовується шлях <code>/dns-query</code>.</td>
-            </tr>
           </tbody>
         </table>
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab(this,'dns-req1')">Один тип</button>
           <button class="tab-btn" onclick="switchTab(this,'dns-req2')">Всі записи</button>
           <button class="tab-btn" onclick="switchTab(this,'dns-req3')">DNSSEC</button>
-          <button class="tab-btn" onclick="switchTab(this,'dns-req-custom')">Резолвер</button>
           <button class="tab-btn" onclick="switchTab(this,'dns-resp')">Відповідь</button>
         </div>
         <div class="tab-content active" id="dns-req1">
@@ -1229,20 +1213,10 @@
 
 <span class="hl-comment"># Перевіряє DNSKEY, DS у батьківській зоні, RRSIG підписи</span></pre>
         </div>
-        <div class="tab-content" id="dns-req-custom">
-          <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="hl-url">GET /api/dns?domain=google.com&type=MX&resolver=dns.google&transport=dot&port=853</span>
-
-<span class="hl-comment"># Доступні транспорти: udp, tcp, dot, doh, doq. Лише публічні адреси резолверів.</span></pre>
-        </div>
         <div class="tab-content" id="dns-resp">
           <span class="response-badge resp-200">200 OK</span>
           <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>{
   <span class="hl-key">"domain"</span>: <span class="hl-str">"google.com"</span>,
-  <span class="hl-key">"resolver"</span>: {
-    <span class="hl-key">"host"</span>: <span class="hl-str">"8.8.8.8"</span>,
-    <span class="hl-key">"transport"</span>: <span class="hl-str">"udp"</span>,
-    <span class="hl-key">"port"</span>: <span class="hl-num">53</span>
-  },
   <span class="hl-key">"results"</span>: [
     {
       <span class="hl-key">"type"</span>: <span class="hl-str">"A"</span>,

@@ -609,51 +609,6 @@ header {
   color: #c4b0e0;
 }
 
-.dns-resolver {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 10px;
-  width: 100%;
-  max-width: 640px;
-  margin: 0 0 24px;
-}
-
-.dns-resolver label {
-  display: grid;
-  gap: 5px;
-  color: var(--muted);
-  font-size: .72rem;
-}
-
-.dns-resolver label:first-child {
-  flex: 1 1 220px;
-}
-
-.dns-resolver input,
-.dns-resolver select {
-  min-width: 90px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  outline: none;
-  background: var(--surface);
-  color: var(--text);
-  font-family: var(--mono);
-}
-
-.dns-resolver input:focus,
-.dns-resolver select:focus {
-  border-color: var(--accent);
-}
-
-.dns-resolver-hint {
-  flex: 1 0 100%;
-  color: var(--muted);
-  font-size: .7rem;
-  line-height: 1.5;
-}
-
 /* ── DNS result card ─────────────────────────────────────────────────────── */
 .dns-type-header {
   display: flex;
