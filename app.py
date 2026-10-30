@@ -772,6 +772,7 @@ def _resolve_dns_server(host: str, public_only: bool) -> tuple[list[str] | None,
             return None, f"Не вдалось резолвити резолвер: {host}"
     if not addresses:
         return None, f"Не вдалось резолвити резолвер: {host}"
+    addresses.sort(key=lambda address: ipaddress.ip_address(address).version)
     if public_only:
         for address in addresses:
             if is_blocked_ip(address):
