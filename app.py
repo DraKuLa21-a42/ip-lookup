@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify, render_template, send_file, Response
 import geoip2.database
 import socket
 import ipaddress
@@ -583,8 +583,56 @@ def is_domain(value: str) -> bool:
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+# ── CLI-клієнти (curl, wget, PowerShell…) ────────────────────────────────────
+
+_CLI_UA_RE = re.compile(
+    r'^(curl|wget|httpie|python-requests|libwww-perl|fetch)|PowerShell',
+    re.IGNORECASE,
+)
+
+
+def _is_cli_client() -> bool:
+    return bool(_CLI_UA_RE.search(request.headers.get("User-Agent", "")))
+
+
+def _cli_response():
+    ip = get_client_ip()
+    try:
+        ipaddress.ip_address(ip)
+    except ValueError:
+        return Response("Не вдалось визначити IP\n", status=400,
+                        mimetype="text/plain")
+
+    info = lookup_ip(ip)
+
+    location_parts = []
+    if info.get("country"):
+        iso = info.get("country_iso")
+        location_parts.append(
+            f"{info['country']} ({iso})" if iso else info["country"]
+        )
+    if info.get("city"):
+        location_parts.append(info["city"])
+
+    rows = [
+        ("ip",       ip),
+        ("hostname", info.get("rdns") or "-"),
+        ("provider", info.get("asn_org") or "-"),
+        ("location", ", ".join(location_parts) or "-"),
+    ]
+    text = "".join(f" {k:<14} : {v}\n" for k, v in rows)
+
+    resp = Response(text, mimetype="text/plain")
+    resp.headers["Cache-Control"] = "no-store"
+    resp.headers["Vary"] = "User-Agent"
+    return resp
+
+
 @app.route("/")
+@rate_limited('default')
 def index():
+    if _is_cli_client():
+        return _cli_response()
     return render_template("index.html")
 
 
