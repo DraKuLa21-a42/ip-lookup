@@ -20,8 +20,10 @@ import requests as _req
 import json as _json
 
 import dns.resolver
+import dns.exception
 import dns.message
 import dns.query
+import dns.reversename
 import dns.rdatatype
 
 from dotenv import load_dotenv
@@ -47,6 +49,58 @@ custom_resolver = dns.resolver.Resolver(configure=False)
 custom_resolver.nameservers = [DNS_RESOLVER_HOST]
 custom_resolver.port = DNS_RESOLVER_PORT
 custom_resolver.lifetime = 5
+
+_system_getaddrinfo = socket.getaddrinfo
+
+
+def _custom_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    if (
+        host is None
+        or host == ""
+        or flags & getattr(socket, "AI_NUMERICHOST", 0)
+        or family not in (0, socket.AF_UNSPEC, socket.AF_INET, socket.AF_INET6)
+    ):
+        return _system_getaddrinfo(host, port, family, type, proto, flags)
+
+    try:
+        address = ipaddress.ip_address(host)
+    except (ValueError, TypeError):
+        address = None
+    if address is not None:
+        return _system_getaddrinfo(host, port, family, type, proto, flags)
+
+    record_types = (
+        ("A",) if family == socket.AF_INET else
+        ("AAAA",) if family == socket.AF_INET6 else
+        ("A", "AAAA")
+    )
+    addresses = []
+    last_error = None
+    for record_type in record_types:
+        try:
+            answers = custom_resolver.resolve(host, record_type, search=False)
+            addresses.extend(answer.address for answer in answers)
+        except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
+            continue
+        except dns.exception.DNSException as error:
+            last_error = error
+
+    results = []
+    for address in dict.fromkeys(addresses):
+        try:
+            results.extend(
+                _system_getaddrinfo(address, port, family, type, proto, flags)
+            )
+        except socket.gaierror:
+            continue
+    if results:
+        return results
+
+    message = str(last_error) if last_error else f"Name or service not known: {host}"
+    raise socket.gaierror(message)
+
+
+socket.getaddrinfo = _custom_getaddrinfo
 # ─────────────────────────────────────────────────────────────────────────────
 
 app = Flask(__name__)
@@ -193,8 +247,11 @@ ASN_DB  = os.path.join("data", "GeoLite2-ASN.mmdb")
 
 def get_rdns(ip: str) -> str | None:
     try:
-        return socket.gethostbyaddr(ip)[0]
-    except Exception:
+        answer = custom_resolver.resolve(
+            dns.reversename.from_address(ip), "PTR", search=False
+        )
+        return answer[0].target.to_text(omit_final_dot=True)
+    except (dns.exception.DNSException, ValueError):
         return None
 
 
