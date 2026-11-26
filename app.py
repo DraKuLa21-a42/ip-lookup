@@ -167,12 +167,68 @@ def resolve_and_validate(host: str) -> tuple[str | None, str | None]:
     return (ips[0] if ips else None), err
 
 
+_SCHEME_RE = re.compile(r'^[a-zA-Z][a-zA-Z0-9+.\-]*://')
+_MAILTO_RE = re.compile(r'^mailto:', re.IGNORECASE)
+
+
+def parse_target(raw: str) -> tuple[str, int | None]:
+    """
+    Витягує хост (і порт, якщо вказаний) з довільного вводу:
+      https://mail.google.com/mail/u/0/#inbox  → ("mail.google.com", None)
+      1.1.1.1:53                               → ("1.1.1.1", 53)
+      [2001:db8::1]:443, user@host:22, ssh://root@host, mailto:a@b.com,
+      "  Example.COM. ", приклад.укр           → хост у ASCII/punycode
+    Голі IPv6 (2001:db8::1) залишаються як є. Порожній рядок → ("", None).
+    """
+    s = (raw or "").strip().strip('"\'<>`').strip()
+    if not s:
+        return "", None
+
+    s = _SCHEME_RE.sub("", s, count=1)
+    s = _MAILTO_RE.sub("", s, count=1)
+
+    # Відкидаємо шлях, query, fragment і все після пробілу
+    s = re.split(r'[/?#\s\\]', s, maxsplit=1)[0]
+    # userinfo (user:pass@host)
+    if "@" in s:
+        s = s.rsplit("@", 1)[1]
+
+    port: int | None = None
+    if s.startswith("["):
+        # [IPv6] або [IPv6]:port
+        end = s.find("]")
+        if end != -1:
+            rest = s[end + 1:]
+            s = s[1:end]
+            if rest.startswith(":") and rest[1:].isdigit():
+                port = int(rest[1:])
+        else:
+            s = s.lstrip("[")
+    elif s.count(":") == 1:
+        host_part, port_part = s.split(":", 1)
+        s = host_part
+        if port_part.isdigit():
+            port = int(port_part)
+    # ≥2 двокрапок без дужок — голий IPv6, не чіпаємо
+
+    s = s.split("%", 1)[0]          # IPv6 zone id (fe80::1%eth0)
+    s = s.rstrip(".").lower()
+
+    if s and not s.isascii():
+        try:
+            s = s.encode("idna").decode("ascii")
+        except UnicodeError:
+            pass  # залишаємо як є — далі відсіється валідацією
+
+    if re.fullmatch(r'as\d+', s):
+        s = s.upper()               # ASN: AS15169
+    if port is not None and not (1 <= port <= 65535):
+        port = None
+    return s, port
+
+
 def sanitize_host(raw: str) -> str:
-    host = raw.strip()
-    for prefix in ("https://", "http://"):
-        if host.lower().startswith(prefix):
-            host = host[len(prefix):]
-    return host.split("/")[0].split("?")[0]
+    return parse_target(raw)[0]
 
 
 # ── Rate limiting ─────────────────────────────────────────────────────────────
@@ -805,7 +861,7 @@ def api_resolve():
 @app.route("/api/lookup")
 @rate_limited('default')
 def api_lookup():
-    ip = request.args.get("ip", "").strip()
+    ip = sanitize_host(request.args.get("ip", ""))
     if not ip:
         return jsonify({"error": "Параметр ip не вказано"}), 400
     try:
@@ -1073,8 +1129,8 @@ def check_ssl(host: str, port: int = 443, resolved_ip: str | None = None) -> dic
 @app.route("/api/ssl")
 @rate_limited('ssl')
 def api_ssl():
-    host = sanitize_host(request.args.get("host", ""))
-    port = request.args.get("port", 443)
+    host, host_port = parse_target(request.args.get("host", ""))
+    port = request.args.get("port") or host_port or 443
     if not host:
         return jsonify({"error": "Параметр host не вказано"}), 400
     try:
@@ -1283,8 +1339,8 @@ def check_tcp_port(
 @app.route("/api/tcpcheck")
 @rate_limited('tcpcheck')
 def api_tcpcheck():
-    host        = sanitize_host(request.args.get("host", ""))
-    ports_param = request.args.get("ports", "").strip()
+    host, host_port = parse_target(request.args.get("host", ""))
+    ports_param = request.args.get("ports", "").strip() or (str(host_port) if host_port else "")
     if not host:
         return jsonify({"error": "Параметр host не вказано"}), 400
     resolved_ip, err = resolve_and_validate(host)

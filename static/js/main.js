@@ -7,6 +7,7 @@ import { doDnsLookup } from './dns.js';
 import { doSslLookup } from './ssl.js';
 import { doPing, doTcpCheck, PORT_PRESETS } from './net.js';
 import { runWhois, selectWhoisMode, whoisMode } from './whois.js';
+import { parseTarget } from './target.js';
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
 const ipInput = document.getElementById('ipInput');
@@ -22,8 +23,15 @@ window.selectWhoisMode = selectWhoisMode;
 
 // ── Dispatch ──────────────────────────────────────────────────────────────
 function dispatch() {
-  const q = ipInput.value.trim();
+  const { host: q, port } = parseTarget(ipInput.value);
   if (!q) return;
+  ipInput.value = q;
+
+  // Порт із вводу (1.1.1.1:53, https://host:8443) підставляємо там, де він має сенс
+  if (port) {
+    if (currentTab === 'ssl') document.getElementById('ssl-port').value = port;
+    if (currentTab === 'net' && currentNetMode === 'tcp') document.getElementById('ports-input').value = port;
+  }
 
   const extra = currentTab === 'dns' ? `&type=${currentDnsType}`
     : currentTab === 'ssl' ? `&port=${document.getElementById('ssl-port').value.trim() || '443'}`
